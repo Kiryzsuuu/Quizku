@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kaji.in — Quiz Seru, Siapa Juara？</title>
+  <link rel="stylesheet" href="/css/shared.css">
+  <style>
+    /* ═══════════════════════════════════════════════════
+       HERO — Manga Panel Layout
+    ═══════════════════════════════════════════════════ */
+    .hero {
+      background: var(--hero-bg);
+      padding: 3.5rem 0 4.5rem;
+      position: relative; overflow: hidden;
+      border-bottom: 4px solid var(--ink);
+    }
+
+    /* Manga action lines radiating from right */
+    .hero::after {
+      content: '';
+      position: absolute; inset: 0; pointer-events: none;
+      background: repeating-conic-gradient(
+        from 0deg at 80% 50%,
+        rgba(26,26,46,0.016) 0deg, rgba(26,26,46,0.016) 1.5deg,
+        transparent 1.5deg, transparent 6deg
+      );
+    }
+
+    /* Giant watermark kanji */
+    .hero-bg-kanji {
+      position: absolute; right: -1rem; top: -2rem;
+      font-family: var(--font-display);
+      font-size: clamp(14rem, 33vw, 26rem);
+      line-height: 1; color: var(--red); opacity: 0.045;
+      pointer-events: none; user-select: none; z-index: 0;
+    }
+
+    .hero-inner {
+      position: relative; z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr min(400px, 42%);
+      align-items: center; gap: 3rem;
+    }
+
+    /* ── Hero Badge ── */
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: var(--yellow); color: var(--ink);
+      border: 2.5px solid var(--ink); border-radius: 0;
+      padding: 0.3rem 0.875rem;
+      font-family: var(--font-display); font-size: 0.68rem;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      box-shadow: 4px 4px 0 var(--ink);
+      margin-bottom: 1.5rem; position: relative;
+    }
+    .hero-badge-dot {
+      width: 8px; height: 8px;
+      background: var(--red); border: 1.5px solid var(--ink);
+      border-radius: 0; animation: dot-blink 2s ease infinite;
+    }
+    @keyframes dot-blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+
+    /* ── Hero Title ── */
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(4rem, 10vw, 7rem);
+      line-height: 0.92; letter-spacing: -0.03em;
+      color: var(--ink);
+      text-shadow: 6px 6px 0 var(--red);
+      margin-bottom: 0.6rem;
+    }
+    .hero-title .t-dot { color: var(--red); text-shadow: 5px 5px 0 var(--ink); }
+
+    /* ── Hero Subtitle — rotated stamp ── */
+    .hero-sub-wrap { margin: 0.75rem 0 1rem; }
+    .hero-sub {
+      display: inline-block;
+      font-family: var(--font-comic);
+      font-size: clamp(1.2rem, 2.8vw, 1.7rem);
+      color: var(--ink); letter-spacing: 0.06em;
+      background: var(--yellow);
+      padding: 0.2rem 0.875rem;
+      border: 2.5px solid var(--ink);
+      box-shadow: 4px 4px 0 var(--ink);
+      transform: rotate(-2deg);
+    }
+
+    .hero-desc {
+      color: var(--ink-mid); font-size: 0.98rem;
+      max-width: 480px; margin-bottom: 2rem; line-height: 1.72;
+    }
+    .hero-actions { display: flex; gap: 0.875rem; flex-wrap: wrap; }
+
+    /* ── Right: Live Quiz Demo Panel ── */
+    .hero-demo {
+      background: white;
+      border: 3px solid var(--ink); border-radius: var(--radius);
+      box-shadow: 8px 8px 0 var(--ink);
+      overflow: hidden; position: relative;
+    }
+    .demo-topbar {
+      background: var(--ink);
+      padding: 0.7rem 1.1rem;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .demo-topbar-label {
+      font-family: var(--font-display); font-size: 0.7rem;
+      color: rgba(255,255,255,0.55); letter-spacing: 0.12em;
+    }
+    .demo-live-badge {
+      background: var(--red); color: white;
+      font-family: var(--font-display); font-size: 0.62rem;
+      letter-spacing: 0.1em; padding: 0.18rem 0.55rem;
+      border: 1.5px solid rgba(255,255,255,0.25);
+      animation: live-pulse 2s ease infinite;
+    }
+    @keyframes live-pulse { 0%,100%{opacity:1} 50%{opacity:0.55} }
+
+    .demo-body { padding: 1.25rem; }
+    .demo-q {
+      font-family: var(--font-display); font-size: 0.92rem;
+      color: var(--ink); margin-bottom: 1rem; line-height: 1.45;
+      padding-bottom: 0.875rem;
+      border-bottom: 2px solid rgba(26,26,46,0.08);
+    }
+    .demo-opt {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.5rem 0.7rem; margin-bottom: 0.45rem;
+      border: 2px solid var(--ink); border-radius: var(--radius-xs);
+      font-size: 0.82rem; color: var(--ink);
+      box-shadow: 2px 2px 0 var(--ink); background: white;
+    }
+    .demo-opt.correct {
+      background: var(--green-light); border-color: var(--green);
+      box-shadow: 2px 2px 0 var(--green);
+      font-weight: 700; color: #006B44;
+    }
+    .demo-opt-letter {
+      width: 22px; height: 22px; flex-shrink: 0;
+      background: var(--ink); color: white; border-radius: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display); font-size: 0.68rem;
+    }
+    .demo-opt.correct .demo-opt-letter { background: var(--green); }
+
+    .demo-timer-row {
+      display: flex; align-items: center; gap: 0.5rem;
+      margin-top: 1rem; padding-top: 0.875rem;
+      border-top: 2px solid rgba(26,26,46,0.08);
+    }
+    .demo-timer-label { font-family: var(--font-display); font-size: 0.7rem; color: var(--ink-soft); }
+    .demo-timer-bar {
+      flex: 1; height: 8px;
+      background: var(--paper-alt); border: 1.5px solid var(--ink);
+      border-radius: 0; overflow: hidden;
+    }
+    .demo-timer-fill { height: 100%; width: 60%; background: var(--blue-bright); }
+
+    .demo-participants {
+      display: flex; align-items: center; gap: 0.4rem;
+      padding: 0.6rem 1.25rem;
+      background: var(--paper); border-top: 2px solid var(--ink);
+      font-family: var(--font-display); font-size: 0.7rem; color: var(--ink-soft);
+    }
+    .demo-avatar-row { display: flex; gap: 0.2rem; }
+    .demo-avatar-mini {
+      width: 22px; height: 22px; border-radius: 50%;
+      border: 1.5px solid var(--ink); display: flex;
+      align-items: center; justify-content: center;
+      font-family: var(--font-display); font-size: 0.6rem;
+      font-weight: 700; color: white;
+    }
+
+    /* ═══════════════════════════════════════════════════
+       STATS BAR
+    ═══════════════════════════════════════════════════ */
+    .stats-bar {
+      background: var(--yellow);
+      border-top: 3px solid var(--ink);
+      border-bottom: 3px solid var(--ink);
+      box-shadow: 0 4px 0 var(--ink);
+      padding: 1.1rem 0; position: relative; z-index: 1;
+    }
+    .stats-bar .container {
+      display: flex; align-items: center;
+      justify-content: center; flex-wrap: wrap; gap: 0;
+    }
+    .stats-item {
+      text-align: center; padding: 0.4rem 2.5rem;
+      border-right: 2.5px solid rgba(26,26,46,0.18);
+    }
+    .stats-item:last-child { border-right: none; }
+    .stats-num {
+      font-family: var(--font-comic); font-size: 2rem;
+      line-height: 1; color: var(--ink);
+    }
+    .stats-lbl {
+      font-family: var(--font-display); font-size: 0.62rem;
+      color: var(--ink-mid); letter-spacing: 0.12em;
+      text-transform: uppercase; margin-top: 0.1rem;
+    }
+
+    /* ═══════════════════════════════════════════════════
+       FEATURES — Manga Panel Grid
+    ═══════════════════════════════════════════════════ */
+    .features {
+      padding: 5rem 0;
+      background: var(--features-bg);
+      border-bottom: 3px solid var(--ink);
+    }
+    .section-kicker {
+      display: block; font-family: var(--font-display);
+      font-size: 0.68rem; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--red);
+      margin-bottom: 0.5rem;
+    }
+    .section-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.7rem, 4vw, 2.6rem);
+      color: var(--ink); margin-bottom: 0.35rem;
+      display: inline-block; position: relative;
+    }
+    .section-title::after {
+      content: '';
+      position: absolute; left: 0; bottom: -5px; right: 0;
+      height: 4px; background: var(--red);
+    }
+    .section-sub {
+      color: var(--ink-mid); font-size: 0.95rem;
+      margin-top: 1rem; margin-bottom: 3rem;
+    }
+
+    .feat-card {
+      background: white; border: 2.5px solid var(--ink);
+      border-radius: var(--radius); box-shadow: var(--shadow-card);
+      padding: 1.75rem 1.5rem;
+      transition: transform 0.1s, box-shadow 0.1s;
+      position: relative; overflow: hidden;
+    }
+    .feat-card::before {
+      content: ''; position: absolute;
+      top: 0; left: 0; right: 0; height: 5px;
+    }
+    .feat-card:nth-child(1)::before { background: var(--red); }
+    .feat-card:nth-child(2)::before { background: var(--blue-bright); }
+    .feat-card:nth-child(3)::before { background: var(--yellow); }
+    .feat-card:nth-child(4)::before { background: var(--green); }
+    .feat-card:nth-child(5)::before { background: var(--purple); }
+    .feat-card:nth-child(6)::before { background: var(--orange); }
+    .feat-card:hover { transform: translate(-3px,-3px); box-shadow: var(--shadow-lg); }
+
+    .feat-icon {
+      font-family: var(--font-display); font-size: 2.2rem; line-height: 1;
+      width: 62px; height: 62px;
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink);
+      margin-bottom: 1.1rem;
+    }
+    .feat-card:nth-child(1) .feat-icon { background: var(--red-light);    color: var(--red-deep); }
+    .feat-card:nth-child(2) .feat-icon { background: var(--blue-light);   color: var(--blue); }
+    .feat-card:nth-child(3) .feat-icon { background: var(--yellow-light); color: var(--yellow-deep); }
+    .feat-card:nth-child(4) .feat-icon { background: var(--green-light);  color: #007A4D; }
+    .feat-card:nth-child(5) .feat-icon { background: var(--purple-light); color: var(--purple); }
+    .feat-card:nth-child(6) .feat-icon { background: var(--orange-light); color: var(--orange); }
+
+    .feat-title { font-family: var(--font-display); font-size: 1.05rem; color: var(--ink); margin-bottom: 0.45rem; }
+    .feat-desc  { color: var(--ink-mid); font-size: 0.875rem; line-height: 1.65; }
+
+    /* ═══════════════════════════════════════════════════
+       HOW IT WORKS — Dark manga panel
+    ═══════════════════════════════════════════════════ */
+    .steps {
+      padding: 5rem 0;
+      background: var(--ink);
+      border-top: 3px solid var(--ink); border-bottom: 3px solid var(--ink);
+      position: relative; overflow: hidden;
+    }
+    .steps::before {
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 22px 22px;
+    }
+    .steps .section-kicker  { color: var(--yellow); }
+    .steps .section-title   { color: white; }
+    .steps .section-title::after { background: var(--yellow); }
+    .steps .section-sub     { color: rgba(255,255,255,0.5); }
+
+    .step-card {
+      background: rgba(255,255,255,0.05);
+      border: 2.5px solid rgba(255,255,255,0.15);
+      border-radius: var(--radius);
+      padding: 2rem 1.5rem; text-align: center;
+      transition: background 0.15s, border-color 0.15s;
+      position: relative; overflow: hidden;
+    }
+    .step-card::before {
+      content: attr(data-num);
+      position: absolute; right: -0.5rem; bottom: -1rem;
+      font-family: var(--font-comic); font-size: 7rem; line-height: 1;
+      color: rgba(255,255,255,0.04); pointer-events: none;
+    }
+    .step-card:hover { background: rgba(255,255,255,0.09); border-color: var(--yellow); }
+
+    .step-num {
+      font-family: var(--font-comic); font-size: 3.5rem; line-height: 1;
+      color: var(--yellow); text-shadow: 3px 3px 0 rgba(0,0,0,0.35);
+      margin-bottom: 0.25rem;
+    }
+    .step-icon  { font-family: var(--font-display); font-size: 2.5rem; display: block; margin-bottom: 0.75rem; color: white; }
+    .step-title { font-family: var(--font-display); font-size: 1rem; color: white; margin-bottom: 0.5rem; }
+    .step-desc  { font-size: 0.85rem; color: rgba(255,255,255,0.5); line-height: 1.65; }
+
+    /* ═══════════════════════════════════════════════════
+       CTA SECTION
+    ═══════════════════════════════════════════════════ */
+    .cta-section {
+      background: var(--cta-bg);
+      padding: 5rem 0; text-align: center;
+      position: relative; overflow: hidden;
+      border-top: 3px solid var(--ink);
+    }
+    /* Action burst lines */
+    .cta-section::before {
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      background: repeating-conic-gradient(
+        from 0deg at 50% 50%,
+        rgba(255,255,255,0.045) 0deg, rgba(255,255,255,0.045) 2deg,
+        transparent 2deg, transparent 9deg
+      );
+    }
+    .cta-bg-kanji {
+      position: absolute; right: -2rem; top: 50%; transform: translateY(-50%);
+      font-family: var(--font-display); font-size: 22rem;
+      opacity: 0.07; color: white; line-height: 1;
+      pointer-events: none; user-select: none;
+    }
+    .cta-section h2 {
+      color: white; font-size: clamp(2rem, 5vw, 3.5rem);
+      margin-bottom: 0.5rem;
+      text-shadow: 4px 4px 0 rgba(0,0,0,0.25);
+    }
+    .cta-section p { color: rgba(255,255,255,0.85); font-size: 1rem; margin-bottom: 2rem; }
+
+    /* ═══════════════════════════════════════════════════
+       FOOTER
+    ═══════════════════════════════════════════════════ */
+    footer {
+      background: var(--footer-bg);
+      color: rgba(255,255,255,0.5);
+      padding: 2.5rem 0; font-size: 0.85rem;
+      border-top: 3px solid rgba(255,255,255,0.07);
+    }
+    .footer-inner {
+      display: flex; align-items: center;
+      justify-content: space-between; flex-wrap: wrap; gap: 1.5rem;
+    }
+    .footer-logo {
+      font-family: var(--font-display); font-size: 1.5rem;
+      color: white; text-shadow: 2px 2px 0 var(--red);
+    }
+    .footer-tagline {
+      font-family: var(--font-display); font-size: 0.72rem;
+      color: rgba(255,255,255,0.35); margin-top: 0.3rem;
+      letter-spacing: 0.04em;
+    }
+    .footer-links { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+    .footer-links a {
+      color: rgba(255,255,255,0.4);
+      font-family: var(--font-display); font-size: 0.78rem;
+      transition: color 0.12s;
+    }
+    .footer-links a:hover { color: var(--yellow); }
+
+    /* ═══════════════════════════════════════════════════
+       RESPONSIVE
+    ═══════════════════════════════════════════════════ */
+    @media (max-width: 820px) {
+      .hero-inner { grid-template-columns: 1fr; }
+      .hero-demo  { display: none; }
+    }
+    @media (max-width: 540px) {
+      .stats-item { padding: 0.4rem 1.25rem; }
+      .hero-title { font-size: clamp(3rem, 14vw, 5rem); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="/" class="navbar-logo" data-site-name>Kaji.in</a>
+    <div class="navbar-links" id="navbar-links">
+      <div id="nav-guest-slot" style="display:none;align-items:center;gap:0.25rem;">
+        <a href="/login.html">入 Masuk</a>
+        <a href="/register.html" class="btn btn-primary btn-sm">始 Daftar</a>
+      </div>
+      <div id="nav-user-slot" class="navbar-user"></div>
+    </div>
+    <button class="navbar-toggle" id="nav-toggle">目</button>
+  </div>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero">
+  <div class="hero-bg-kanji" aria-hidden="true">学</div>
+  <div class="container">
+    <div class="hero-inner">
+
+      <!-- Left: Text -->
+      <div>
+        <div class="hero-badge">
+          <span class="hero-badge-dot"></span>
+          <span id="hero-chip-text">Platform Kuis Bergaya Manga！</span>
+        </div>
+
+        <h1 class="hero-title" id="hero-title">
+          Kaji<span class="t-dot">.in</span>
+        </h1>
+
+        <div class="hero-sub-wrap">
+          <span class="hero-sub" id="hero-subtitle">Quiz Seru, Siapa Juara？</span>
+        </div>
+
+        <p class="hero-desc" id="hero-desc">
+          Buat kuis pilihan ganda, tantang teman, dan nikmati sesi quiz live yang penuh semangat! Cocok untuk pelajaran apa saja — IPA, IPS, Bahasa, sampai trivia seru.
+        </p>
+
+        <div class="hero-actions">
+          <a href="/register.html" class="btn btn-primary btn-lg" id="hero-cta1">始 Mulai Gratis</a>
+          <a href="/join.html" class="btn btn-sky btn-lg" id="hero-cta2">参 Gabung Kuis</a>
+        </div>
+      </div>
+
+      <!-- Right: Live Quiz Demo -->
+      <div class="hero-demo">
+        <div class="demo-topbar">
+          <span class="demo-topbar-label">問 LIVE QUIZ</span>
+          <span class="demo-live-badge">● LIVE</span>
+        </div>
+        <div class="demo-body">
+          <div class="demo-q">Planet manakah yang terbesar di Tata Surya?</div>
+          <div class="demo-opt">
+            <span class="demo-opt-letter">A</span> Saturnus
+          </div>
+          <div class="demo-opt correct">
+            <span class="demo-opt-letter">B</span> Jupiter ✓
+          </div>
+          <div class="demo-opt">
+            <span class="demo-opt-letter">C</span> Mars
+          </div>
+          <div class="demo-opt">
+            <span class="demo-opt-letter">D</span> Uranus
+          </div>
+          <div class="demo-timer-row">
+            <span class="demo-timer-label">時 12d</span>
+            <div class="demo-timer-bar"><div class="demo-timer-fill"></div></div>
+          </div>
+        </div>
+        <div class="demo-participants">
+          <div class="demo-avatar-row">
+            <div class="demo-avatar-mini" style="background:var(--red);">A</div>
+            <div class="demo-avatar-mini" style="background:var(--blue-bright);">B</div>
+            <div class="demo-avatar-mini" style="background:var(--green);">C</div>
+          </div>
+          <span>人 24 peserta sedang menjawab...</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══ STATS BAR ═══ -->
+<div class="stats-bar">
+  <div class="container">
+    <div class="stats-item">
+      <div class="stats-num">1000+</div>
+      <div class="stats-lbl">Pertanyaan</div>
+    </div>
+    <div class="stats-item">
+      <div class="stats-num">500+</div>
+      <div class="stats-lbl">Kuis Aktif</div>
+    </div>
+    <div class="stats-item">
+      <div class="stats-num">実時間</div>
+      <div class="stats-lbl">Sesi Live</div>
+    </div>
+    <div class="stats-item">
+      <div class="stats-num">無料</div>
+      <div class="stats-lbl">100% Gratis</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FEATURES ═══ -->
+<section class="features">
+  <div class="container">
+    <div class="text-center mb-4">
+      <span class="section-kicker">機能 — FITUR UNGGULAN</span>
+      <h2 class="section-title">Kenapa <span style="color:var(--red);">Kaji.in</span>?</h2>
+      <p class="section-sub">Semua yang kamu butuhkan untuk quiz yang seru, mudah, dan berkesan</p>
+    </div>
+    <div class="grid-3">
+      <div class="feat-card">
+        <div class="feat-icon">作</div>
+        <h3 class="feat-title">Buat Kuis Mudah</h3>
+        <p class="feat-desc">Buat kuis pilihan ganda dalam hitungan menit — tentang topik apa saja. Tidak perlu keahlian teknis!</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">戦</div>
+        <h3 class="feat-title">Quiz Live Real-time</h3>
+        <p class="feat-desc">Semua peserta menjawab bersamaan. Skor diperbarui setiap saat — seru dan kompetitif!</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">音</div>
+        <h3 class="feat-title">BGM Kuis</h3>
+        <p class="feat-desc">Tambahkan musik latar pada kuismu. Bisa di-mute oleh pemain — suasana makin hype!</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">言</div>
+        <h3 class="feat-title">Komentar & Diskusi</h3>
+        <p class="feat-desc">Berikan feedback dan diskusi setelah kuis selesai. Belajar bareng jadi lebih bermakna!</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">析</div>
+        <h3 class="feat-title">Papan Skor Live</h3>
+        <p class="feat-desc">Peringkat diperbarui setiap pertanyaan — drama dan ketegangan sampai akhir!</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">設</div>
+        <h3 class="feat-title">Kustomisasi Penuh</h3>
+        <p class="feat-desc">Admin bisa mengatur warna, teks, BGM, komentar, dan seluruh tampilan platform!</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ HOW IT WORKS ═══ -->
+<section class="steps">
+  <div class="container" style="position:relative;z-index:1;">
+    <div class="text-center mb-4">
+      <span class="section-kicker">手順 — CARA PAKAI</span>
+      <h2 class="section-title">Mulai dalam <span style="color:var(--yellow);">3 Langkah</span></h2>
+      <p class="section-sub">Quiz pertamamu bisa jalan dalam 5 menit</p>
+    </div>
+    <div class="grid-3">
+      <div class="step-card" data-num="01">
+        <div class="step-num">01</div>
+        <span class="step-icon">作</span>
+        <h3 class="step-title">Buat Kuis</h3>
+        <p class="step-desc">Daftar sebagai guru, buat kuis dengan pertanyaan tentang topik apa saja yang kamu mau.</p>
+      </div>
+      <div class="step-card" data-num="02">
+        <div class="step-num">02</div>
+        <span class="step-icon">共</span>
+        <h3 class="step-title">Bagikan Kode</h3>
+        <p class="step-desc">Mulai sesi live, bagikan kode 6 karakter kepada semua peserta yang akan bermain.</p>
+      </div>
+      <div class="step-card" data-num="03">
+        <div class="step-num">03</div>
+        <span class="step-icon">勝</span>
+        <h3 class="step-title">Seru-seruan!</h3>
+        <p class="step-desc">Jawab bareng secara real-time, lihat papan skor, dan umumkan siapa juaranya!</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ CTA ═══ -->
+<section class="cta-section">
+  <div class="cta-bg-kanji" aria-hidden="true">勝</div>
+  <div class="container" style="position:relative;z-index:1;">
+    <h2 id="cta-title">Siap Bikin Quiz Pertamamu?</h2>
+    <p id="cta-desc">Daftar gratis sekarang dan mulai tantang teman-temanmu!</p>
+    <div class="flex justify-center gap-2" style="flex-wrap:wrap;">
+      <a href="/register.html" class="btn btn-honey btn-lg">始 Daftar Sekarang</a>
+      <a href="/join.html" class="btn btn-dark btn-lg">参 Saya Punya Kode</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div>
+        <div class="footer-logo" data-site-name>Kaji.in</div>
+        <div class="footer-tagline" id="footer-text">勉強 Terus Belajar · 学習 Terus Berlatih</div>
+      </div>
+      <div class="footer-links">
+        <a href="/login.html">入 Masuk</a>
+        <a href="/register.html">始 Daftar</a>
+        <a href="/join.html">参 Gabung</a>
+        <a href="/dashboard.html">控 Dashboard</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="/js/app.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const user   = Auth.getUser();
+    const toggle = document.getElementById('nav-toggle');
+    const links  = document.getElementById('navbar-links');
+    if (toggle && links) toggle.addEventListener('click', () => links.classList.toggle('open'));
+
+    if (user) {
+      document.getElementById('nav-guest-slot').style.display = 'none';
+      const colorMap = { admin:'avatar-lavender', teacher:'avatar-pink', student:'' };
+      document.getElementById('nav-user-slot').innerHTML = `
+        <a href="/dashboard.html">控 Dashboard</a>
+        <span style="width:1px;height:20px;background:var(--border-color);margin:0 0.25rem;"></span>
+        ${renderAvatar(user.avatar, 'avatar-sm', colorMap[user.role] || '')}
+        <span class="hide-mobile" style="font-size:0.85rem;">${user.name}</span>
+        ${user.role === 'admin' ? `<a href="/admin.html" style="font-size:0.78rem;background:var(--lavender-light);color:var(--lavender);padding:0.2rem 0.5rem;border-radius:var(--radius-full);font-family:var(--font-display);font-weight:700;">管 Admin</a>` : ''}
+        <button class="nav-logout" onclick="Auth.logout()">出</button>`;
+    } else {
+      document.getElementById('nav-guest-slot').style.display = 'flex';
+    }
+  });
+
+  // Apply site settings texts after they load
+  document.addEventListener('siteSettingsLoaded', e => {
+    const s = e.detail || window.SITE || {};
+    if (s.heroTitle)       document.getElementById('hero-title').innerHTML = s.heroTitle.replace('.in', '<span class="t-dot">.in</span>');
+    if (s.heroSubtitle)    document.getElementById('hero-subtitle').textContent   = s.heroSubtitle;
+    if (s.heroDescription) document.getElementById('hero-desc').textContent       = s.heroDescription;
+    if (s.heroCTA1)        document.getElementById('hero-cta1').textContent       = s.heroCTA1;
+    if (s.heroCTA2)        document.getElementById('hero-cta2').textContent       = s.heroCTA2;
+    if (s.footerText)      document.getElementById('footer-text').textContent     = s.footerText;
+    if (s.chipText)        document.getElementById('hero-chip-text').textContent  = s.chipText;
+  });
+</script>
+</body>
+</html>

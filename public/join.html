@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gabung Kuis — Kaji.in</title>
+  <link rel="stylesheet" href="/css/shared.css">
+  <style>
+    body {
+      background: linear-gradient(135deg, #E0F4FD 0%, #EDE9FD 50%, #FFF0F8 100%);
+      min-height: 100vh; display: flex; flex-direction: column;
+    }
+    .join-wrap { flex:1; display:flex; align-items:center; justify-content:center; padding:2rem 1.5rem; }
+    .join-card { background:white; border:var(--border); border-radius:var(--radius); box-shadow:var(--shadow-lg); width:100%; max-width:440px; overflow:hidden; }
+    .join-banner {
+      background: linear-gradient(135deg, var(--sky), var(--mint));
+      padding: 2.5rem 2rem; text-align: center;
+    }
+    .join-kanji { font-family:var(--font-display); font-size:6rem; color:rgba(255,255,255,0.25); line-height:1; }
+    .join-banner-title { font-family:var(--font-display); font-size:1.5rem; color:white; margin-top:0.5rem; }
+    .join-banner-sub   { font-family:var(--font-comic); font-size:1rem; color:rgba(255,255,255,0.8); letter-spacing:0.05em; }
+    .join-body { padding:2rem; }
+    .code-input {
+      font-family: var(--font-comic) !important; font-size: 2.5rem !important;
+      letter-spacing: 0.3em !important; text-align: center !important;
+      text-transform: uppercase !important; padding: 0.75rem 1rem !important;
+    }
+    .session-preview {
+      background: var(--sky-light); border: 1.5px solid var(--sky-light);
+      border-radius: var(--radius-md); padding: 0.875rem 1rem;
+      margin-bottom: 1.25rem; display: none;
+    }
+    .session-preview-title { font-family:var(--font-display); font-size:0.95rem; color:var(--text); margin-bottom:0.2rem; }
+    .session-preview-meta  { font-size:0.78rem; color:var(--text-mid); }
+    .auth-error { background:var(--coral-light); border:1.5px solid var(--coral); color:var(--coral); border-radius:var(--radius-md); padding:0.65rem 0.875rem; font-size:0.85rem; font-family:var(--font-display); margin-bottom:1.25rem; display:none; }
+    .join-footer { padding:1rem 2rem; border-top:var(--border); text-align:center; font-size:0.85rem; background:var(--bg); }
+    .join-footer a { color:var(--sakura); font-weight:700; }
+  </style>
+</head>
+<body>
+<div class="join-wrap">
+  <div class="join-card">
+    <div class="join-banner">
+      <div class="join-kanji">参</div>
+      <div class="join-banner-title" data-site-name>Kaji.in</div>
+      <div class="join-banner-sub">GABUNG KUIS SEKARANG</div>
+    </div>
+    <div class="join-body">
+      <div class="auth-error" id="error-box"></div>
+      <form id="join-form">
+        <div class="form-group">
+          <label class="form-label" for="room-code">Kode Sesi (6 huruf)</label>
+          <input class="form-input code-input" type="text" id="room-code"
+            placeholder="ABCXYZ" maxlength="6"
+            autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
+        </div>
+        <div class="session-preview" id="session-preview">
+          <div class="session-preview-title" id="preview-title"></div>
+          <div class="session-preview-meta" id="preview-host"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="player-name">Nama Pemain</label>
+          <input class="form-input form-input-lg" type="text" id="player-name"
+            placeholder="Namamu di papan skor" maxlength="30" autocomplete="off">
+        </div>
+        <button type="submit" class="btn btn-sky btn-full btn-lg" id="join-btn">参 Gabung Kuis!</button>
+      </form>
+      <div style="display:flex;align-items:center;gap:.75rem;margin:1.25rem 0;color:var(--text-soft);font-size:0.78rem;font-family:var(--font-display);letter-spacing:0.1em;">
+        <span style="flex:1;height:1.5px;background:var(--border-color);"></span>atau<span style="flex:1;height:1.5px;background:var(--border-color);"></span>
+      </div>
+      <a href="/login.html" class="btn btn-outline btn-full">入 Masuk / Daftar Akun</a>
+    </div>
+    <div class="join-footer"><a href="/">戻 Kembali ke Beranda</a></div>
+  </div>
+</div>
+<script src="/js/app.js"></script>
+<script>
+  let previewTimeout;
+  document.addEventListener('DOMContentLoaded', () => {
+    const codeInput = document.getElementById('room-code');
+    const p = new URLSearchParams(window.location.search);
+    if (p.get('code')) codeInput.value = p.get('code').toUpperCase();
+    const user = Auth.getUser();
+    if (user) document.getElementById('player-name').value = user.name;
+    codeInput.addEventListener('input', () => {
+      const val = codeInput.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+      codeInput.value = val;
+      clearTimeout(previewTimeout);
+      hidePreview();
+      if (val.length === 6) previewTimeout = setTimeout(() => fetchPreview(val), 400);
+    });
+  });
+  async function fetchPreview(code) {
+    try {
+      const s = await fetch('/api/session/' + code).then(r => r.json());
+      if (s?.quiz) {
+        document.getElementById('preview-title').textContent = '問 ' + s.quiz.title;
+        document.getElementById('preview-host').textContent = '師 ' + (s.host?.name||'Host') + ' · ' + (s.participants?.length||0) + ' pemain';
+        document.getElementById('session-preview').style.display = 'block';
+        document.getElementById('error-box').style.display = 'none';
+      } else showErr('Kode tidak valid atau sesi tidak ditemukan');
+    } catch { showErr('Tidak dapat memverifikasi kode'); }
+  }
+  function hidePreview() {
+    document.getElementById('session-preview').style.display = 'none';
+    document.getElementById('error-box').style.display = 'none';
+  }
+  function showErr(msg) {
+    const el = document.getElementById('error-box');
+    el.textContent = msg; el.style.display = 'block';
+  }
+  document.getElementById('join-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const code = document.getElementById('room-code').value.trim().toUpperCase();
+    const name = document.getElementById('player-name').value.trim();
+    const btn  = document.getElementById('join-btn');
+    if (code.length !== 6) { showErr('Kode harus 6 karakter'); return; }
+    if (!name) { showErr('Masukkan nama pemain'); return; }
+    btn.disabled = true; btn.textContent = 'Bergabung...';
+    window.location.href = `/quiz.html?code=${encodeURIComponent(code)}&name=${encodeURIComponent(name)}`;
+  });
+</script>
+</body>
+</html>

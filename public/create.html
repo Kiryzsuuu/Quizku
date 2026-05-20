@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buat Kuis — Kaji.in</title>
+  <link rel="stylesheet" href="/css/shared.css">
+  <style>
+    html, body { height: 100%; overflow: hidden; background: var(--paper); }
+
+    /* ── Layout: two independent scroll columns ── */
+    .create-wrap {
+      display: flex;
+      height: calc(100vh - var(--nav-h));
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    .create-sidebar {
+      width: 320px; flex-shrink: 0;
+      background: var(--white); border-right: 3px solid var(--ink);
+      height: 100%; display: flex; flex-direction: column; overflow: hidden;
+    }
+    /* scrollable area inside sidebar */
+    .sidebar-scroll { flex: 1; overflow-y: auto; }
+    .sidebar-section { border-bottom: 2px solid var(--ink); padding: 1.25rem; }
+    .sidebar-section:last-child { border-bottom: none; }
+    .sidebar-title {
+      font-family: var(--font-comic); font-size: 0.78rem; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--ink); margin-bottom: 0.875rem;
+      padding-bottom: 0.5rem; border-bottom: 2px solid var(--ink);
+    }
+
+    .color-picker-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .color-swatch {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 3px solid transparent; cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .color-swatch:hover  { transform: scale(1.2); }
+    .color-swatch.active { border-color: var(--ink); box-shadow: 3px 3px 0 var(--ink); }
+
+    /* streak section */
+    .streak-toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+    .streak-fields { display: none; flex-direction: column; gap: 0.6rem; }
+    .streak-fields.visible { display: flex; }
+    .streak-row { display: flex; align-items: center; gap: 0.5rem; }
+    .streak-row label { font-family: var(--font-comic); font-size: 0.75rem; flex: 1; }
+    .streak-row input { width: 64px; text-align: center; }
+
+    /* save button pinned at bottom of sidebar, never scrolls away */
+    .save-footer {
+      flex-shrink: 0; background: var(--white);
+      border-top: 3px solid var(--ink); padding: 1rem 1.25rem;
+      box-shadow: 0 -4px 0 var(--ink);
+    }
+
+    /* ── Main Content ── */
+    .create-main { flex: 1; min-width: 0; height: 100%; overflow-y: auto; padding: 1.5rem; }
+    .create-main-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+    .q-counter {
+      font-family: var(--font-comic); font-size: 0.78rem; color: var(--text-mid);
+      background: var(--yellow); border: 2px solid var(--ink);
+      padding: 0.2rem 0.6rem; box-shadow: 2px 2px 0 var(--ink);
+    }
+
+    /* ── Question List Items ── */
+    .q-list { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.25rem; }
+    .q-item {
+      background: var(--white); border: 2.5px solid var(--ink);
+      box-shadow: 4px 4px 0 var(--ink); border-radius: 0;
+      overflow: hidden;
+    }
+    .q-item-head {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.6rem 0.875rem; background: var(--ink); color: var(--white);
+    }
+    .q-item-num {
+      font-family: var(--font-comic); font-size: 1rem; color: var(--yellow);
+      flex-shrink: 0; min-width: 20px;
+    }
+    .q-item-text {
+      flex: 1; font-family: var(--font-comic); font-size: 0.85rem;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .q-item-type-badge {
+      font-size: 0.65rem; font-family: var(--font-comic);
+      background: var(--yellow); color: var(--ink);
+      padding: 0.1rem 0.4rem; border-radius: 2px; flex-shrink: 0;
+    }
+    .q-item-body { padding: 0.6rem 0.875rem; }
+    .q-opts-preview { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.4rem; }
+    .q-opt-chip {
+      font-size: 0.72rem; font-family: var(--font-comic);
+      padding: 0.15rem 0.5rem; border: 1.5px solid var(--ink);
+      background: var(--paper);
+    }
+    .q-opt-chip.correct { background: #4EDBA8; border-color: var(--ink); }
+    .q-item-meta { font-size: 0.72rem; color: var(--text-soft); font-family: var(--font-comic); }
+    .q-item-actions { display: flex; gap: 0.4rem; }
+
+    /* ── Add Question Panel ── */
+    .add-q-panel {
+      background: var(--white); border: 3px solid var(--ink);
+      box-shadow: 6px 6px 0 var(--ink);
+    }
+    .add-q-panel-header {
+      background: var(--red); color: var(--white);
+      padding: 0.75rem 1.25rem; display: flex; align-items: center; justify-content: space-between;
+    }
+    .add-q-panel-header h3 { font-family: var(--font-comic); font-size: 1rem; margin: 0; }
+    .add-q-body { padding: 1.25rem; }
+
+    /* Type tabs */
+    .type-tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.25rem; }
+    .type-tab {
+      padding: 0.35rem 0.75rem; border: 2px solid var(--ink);
+      font-family: var(--font-comic); font-size: 0.75rem; cursor: pointer;
+      background: var(--white); color: var(--ink);
+      box-shadow: 2px 2px 0 var(--ink); transition: all 0.1s;
+    }
+    .type-tab:hover  { background: var(--paper); }
+    .type-tab.active { background: var(--ink); color: var(--white); box-shadow: none; }
+
+    /* Media fields */
+    .media-row { display: flex; gap: 0.5rem; align-items: flex-end; margin-bottom: 0.75rem; }
+    .media-preview-img {
+      max-height: 120px; max-width: 100%; border: 2px solid var(--ink);
+      display: none; margin-top: 0.5rem;
+    }
+
+    /* Options: pilihan_ganda / pilihan_kartu / pilihan_gambar */
+    .option-rows { display: flex; flex-direction: column; gap: 0.5rem; }
+    .option-row  { display: flex; align-items: center; gap: 0.5rem; }
+    .opt-letter  {
+      font-family: var(--font-comic); font-size: 0.85rem; font-weight: 700;
+      width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+      border: 2px solid var(--ink); flex-shrink: 0;
+      background: var(--yellow);
+    }
+    .opt-img-url { flex: 1; }
+    .opt-text    { flex: 1; }
+    .opt-correct-radio { accent-color: #4EDBA8; width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; }
+
+    /* benar_salah */
+    .tf-options { display: flex; gap: 1rem; }
+    .tf-btn {
+      flex: 1; padding: 1rem; border: 3px solid var(--ink);
+      font-family: var(--font-comic); font-size: 1.1rem; cursor: pointer;
+      box-shadow: 4px 4px 0 var(--ink); background: var(--white);
+      transition: all 0.1s;
+    }
+    .tf-btn.true-btn  { background: #4EDBA8; }
+    .tf-btn.false-btn { background: #FF8066; color: var(--white); }
+    .tf-btn.selected  { box-shadow: 0 0 0; transform: translate(4px,4px); }
+
+    /* cocokkan */
+    .match-pairs { display: flex; flex-direction: column; gap: 0.5rem; }
+    .match-pair-row { display: flex; gap: 0.5rem; align-items: center; }
+    .match-pair-row input { flex: 1; }
+    .match-connector {
+      font-family: var(--font-comic); font-size: 1rem; color: var(--text-soft);
+      flex-shrink: 0;
+    }
+
+    /* Time & Points pickers */
+    .chip-group { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .chip {
+      padding: 0.25rem 0.6rem; border: 2px solid var(--ink);
+      font-family: var(--font-comic); font-size: 0.75rem; cursor: pointer;
+      background: var(--white); box-shadow: 2px 2px 0 var(--ink);
+      transition: all 0.1s;
+    }
+    .chip:hover  { background: var(--paper); }
+    .chip.active { background: var(--ink); color: var(--white); box-shadow: none; }
+
+    /* Empty state */
+    .q-empty {
+      text-align: center; padding: 3rem 1.5rem;
+      border: 3px dashed #ccc; margin-bottom: 1.25rem;
+      background: var(--white);
+    }
+    .q-empty-icon { font-family: var(--font-comic); font-size: 3rem; color: #ccc; }
+    .q-empty p { font-family: var(--font-comic); color: var(--text-soft); margin-top: 0.5rem; }
+
+    /* bgm hint */
+    .form-hint-sm { font-size: 0.72rem; color: var(--text-soft); margin-top: 0.3rem; font-family: var(--font-comic); }
+
+    /* ── BGM selected display ── */
+    .bgm-selected-strip {
+      display: none; align-items: center; gap: 0.5rem;
+      background: var(--ink); color: var(--yellow);
+      padding: 0.4rem 0.75rem; border: 2px solid var(--ink);
+      font-family: var(--font-comic); font-size: 0.78rem;
+      margin-top: 0.4rem;
+    }
+    .bgm-selected-strip.visible { display: flex; }
+    .bgm-clear-btn {
+      background: none; border: none; color: rgba(255,255,255,0.5);
+      cursor: pointer; font-family: var(--font-comic); font-size: 0.85rem;
+      margin-left: auto; padding: 0;
+    }
+    .bgm-clear-btn:hover { color: #FF6060; }
+
+    /* ── BGM Picker Modal ── */
+    .bgm-modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      z-index: 500; display: none; align-items: center; justify-content: center;
+      padding: 1rem;
+    }
+    .bgm-modal-backdrop.open { display: flex; }
+    .bgm-modal {
+      background: var(--white); border: 3px solid var(--ink);
+      box-shadow: 8px 8px 0 var(--ink); width: 100%; max-width: 580px;
+      max-height: 80vh; display: flex; flex-direction: column;
+    }
+    .bgm-modal-header {
+      background: var(--ink); color: var(--white); padding: 0.75rem 1.25rem;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .bgm-modal-header h3 { font-family: var(--font-comic); font-size: 1rem; margin: 0; }
+    .bgm-modal-close {
+      background: none; border: none; color: rgba(255,255,255,0.6);
+      font-family: var(--font-comic); font-size: 1.2rem; cursor: pointer;
+      line-height: 1; padding: 0;
+    }
+    .bgm-modal-close:hover { color: white; }
+    .bgm-modal-search {
+      padding: 0.75rem 1rem; border-bottom: 2px solid var(--ink); flex-shrink: 0;
+    }
+    .bgm-modal-search input {
+      width: 100%; box-sizing: border-box;
+    }
+    .bgm-modal-list { flex: 1; overflow-y: auto; }
+    .bgm-track-item {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.75rem 1rem; border-bottom: 2px solid var(--ink);
+      cursor: pointer; transition: background 0.1s;
+    }
+    .bgm-track-item:last-child { border-bottom: none; }
+    .bgm-track-item:hover { background: var(--yellow); }
+    .bgm-track-num {
+      font-family: var(--font-comic); font-size: 0.78rem; color: var(--text-soft);
+      width: 20px; text-align: right; flex-shrink: 0;
+    }
+    .bgm-track-label {
+      flex: 1; font-family: var(--font-comic); font-size: 0.88rem; font-weight: 700;
+    }
+    .bgm-track-preview {
+      background: none; border: 2px solid var(--ink); color: var(--ink);
+      font-family: var(--font-comic); font-size: 0.75rem; cursor: pointer;
+      padding: 0.2rem 0.5rem; flex-shrink: 0;
+      transition: all 0.1s;
+    }
+    .bgm-track-preview:hover { background: var(--ink); color: var(--white); }
+    .bgm-track-select {
+      background: var(--ink); color: var(--white); border: 2px solid var(--ink);
+      font-family: var(--font-comic); font-size: 0.75rem; cursor: pointer;
+      padding: 0.2rem 0.6rem; flex-shrink: 0;
+    }
+    .bgm-modal-empty {
+      text-align: center; padding: 3rem 1rem;
+      font-family: var(--font-comic); color: var(--text-soft);
+    }
+
+    @media (max-width: 860px) {
+      html, body { height: auto; overflow: auto; }
+      .create-wrap { flex-direction: column; height: auto; overflow: visible; }
+      .create-sidebar { width: 100%; height: auto; overflow: visible; border-right: none; border-bottom: 3px solid var(--ink); }
+      .sidebar-scroll  { overflow: visible; height: auto; }
+      .create-main     { height: auto; overflow: visible; }
+      .save-footer     { box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="/dashboard.html" class="navbar-logo" data-site-name>Kaji.in</a>
+    <div class="navbar-links" id="navbar-links">
+      <a href="/dashboard.html">控 Dashboard</a>
+      <div id="nav-user-slot" class="navbar-user"></div>
+    </div>
+    <button class="navbar-toggle">目</button>
+  </div>
+</nav>
+
+<div class="create-wrap">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="create-sidebar">
+  <div class="sidebar-scroll">
+
+    <div class="sidebar-section" style="background:var(--ink);padding:0.875rem 1.25rem;">
+      <h2 style="font-family:var(--font-comic);font-size:1rem;color:var(--yellow);margin:0;" id="page-title">作 Buat Kuis Baru</h2>
+      <p style="font-family:var(--font-comic);font-size:0.72rem;color:rgba(255,255,255,0.5);margin:0.2rem 0 0;" id="page-sub">Tambahkan pertanyaan dan simpan kuismu</p>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">設 Info Kuis</div>
+      <div class="form-group">
+        <label class="form-label">Judul Kuis</label>
+        <input class="form-input" id="quiz-title" type="text" placeholder="Judul kuismu..." maxlength="80">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Deskripsi</label>
+        <textarea class="form-input" id="quiz-desc" rows="2" placeholder="Deskripsi singkat (opsional)..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">音 BGM Kuis</label>
+        <button type="button" class="btn btn-outline btn-sm btn-full" id="bgm-pick-btn"
+          style="justify-content:flex-start;gap:0.5rem;font-family:var(--font-comic);">
+          音 Pilih dari Bank BGM
+        </button>
+        <div class="bgm-selected-strip" id="bgm-selected-strip">
+          <span>音</span>
+          <span id="bgm-selected-label" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+          <button type="button" class="bgm-clear-btn" id="bgm-clear-btn" title="Hapus pilihan BGM">✕</button>
+        </div>
+        <div class="form-hint-sm" style="margin-top:0.4rem;">Atau masukkan URL manual:</div>
+        <input class="form-input" id="bgm-url" type="url" placeholder="https://... (MP3/OGG)" style="margin-top:0.3rem;">
+        <input type="hidden" id="bgm-label">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Warna Sampul</label>
+        <div class="color-picker-row" id="color-picker">
+          <div class="color-swatch active" data-color="#FF8AAE" style="background:#FF8AAE;"></div>
+          <div class="color-swatch" data-color="#59BFEB"  style="background:#59BFEB;"></div>
+          <div class="color-swatch" data-color="#FFD566"  style="background:#FFD566;"></div>
+          <div class="color-swatch" data-color="#4EDBA8"  style="background:#4EDBA8;"></div>
+          <div class="color-swatch" data-color="#9B8AF5"  style="background:#9B8AF5;"></div>
+          <div class="color-swatch" data-color="#FF8066"  style="background:#FF8066;"></div>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+          <input type="checkbox" id="quiz-public" style="accent-color:var(--mint);width:16px;height:16px;">
+          <span class="form-label" style="margin:0;">公 Kuis Publik</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">連 Streak Bonus</div>
+      <div class="streak-toggle-row">
+        <span class="form-label" style="margin:0;">Aktifkan Streak Bonus</span>
+        <label class="toggle-switch" style="position:relative;display:inline-block;width:40px;height:22px;">
+          <input type="checkbox" id="streak-enabled" style="opacity:0;width:0;height:0;">
+          <span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#ccc;border:2px solid var(--ink);transition:.2s;" id="streak-slider"></span>
+        </label>
+      </div>
+      <div class="form-hint-sm" style="margin-bottom:0.75rem;">Poin bonus jika pemain menjawab benar berturut-turut</div>
+      <div class="streak-fields" id="streak-fields">
+        <div class="streak-row">
+          <label>Jumlah Streak</label>
+          <input class="form-input" id="streak-count" type="number" min="2" max="20" value="3">
+        </div>
+        <div class="streak-row">
+          <label>Multiplier Poin</label>
+          <input class="form-input" id="streak-mult" type="number" min="1.1" max="5" step="0.1" value="1.5">
+        </div>
+        <div class="form-hint-sm">Contoh: 3 streak × 1.5× → poin ×1.5</div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div style="text-align:center;margin-bottom:0.75rem;">
+        <span style="font-family:var(--font-comic);font-size:2.5rem;color:var(--ink);line-height:1;" id="q-count-big">0</span>
+        <div style="font-family:var(--font-comic);font-size:0.75rem;color:var(--text-soft);">pertanyaan</div>
+      </div>
+    </div>
+
+  </div><!-- /sidebar-scroll -->
+
+    <div class="save-footer">
+      <button class="btn btn-primary btn-full" id="save-btn" style="font-size:1rem;padding:0.75rem;">保 Simpan Kuis</button>
+    </div>
+
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <main class="create-main">
+
+    <div class="create-main-header">
+      <h2 style="font-family:var(--font-comic);font-size:1.1rem;margin:0;">問 Daftar Pertanyaan</h2>
+      <span class="q-counter" id="q-counter">0 Pertanyaan</span>
+    </div>
+
+    <!-- Question List -->
+    <div class="q-list" id="q-list">
+      <div class="q-empty" id="q-empty">
+        <div class="q-empty-icon">問</div>
+        <p>Belum ada pertanyaan.<br>Isi form di bawah untuk mulai.</p>
+      </div>
+    </div>
+
+    <!-- Add / Edit Question Panel -->
+    <div class="add-q-panel" id="add-q-panel">
+      <div class="add-q-panel-header">
+        <h3 id="add-q-panel-title">加 Tambah Pertanyaan</h3>
+        <button class="btn btn-sm" style="background:rgba(255,255,255,0.2);color:white;border:1.5px solid rgba(255,255,255,0.4);"
+          id="cancel-btn" onclick="cancelEdit()" style="display:none;">取消</button>
+      </div>
+      <div class="add-q-body">
+
+        <!-- Type Tabs -->
+        <div class="form-group">
+          <label class="form-label">Jenis Pertanyaan</label>
+          <div class="type-tabs" id="type-tabs">
+            <button class="type-tab active" data-type="pilihan_ganda">選 Pilihan Ganda</button>
+            <button class="type-tab" data-type="pilihan_kartu">牌 Pilihan Kartu</button>
+            <button class="type-tab" data-type="benar_salah">○× Benar/Salah</button>
+            <button class="type-tab" data-type="pilihan_gambar">画 Pilihan Gambar</button>
+            <button class="type-tab" data-type="cocokkan">対 Cocokkan</button>
+          </div>
+        </div>
+
+        <!-- Question Text -->
+        <div class="form-group">
+          <label class="form-label">Teks Pertanyaan</label>
+          <textarea class="form-input" id="q-text" rows="2" placeholder="Tulis pertanyaanmu di sini..." maxlength="400"></textarea>
+        </div>
+
+        <!-- Media -->
+        <div class="form-group" id="media-section">
+          <label class="form-label">Media (opsional)</label>
+          <div class="media-row">
+            <input class="form-input" id="q-image-url" type="url" placeholder="URL gambar pertanyaan (opsional)" style="flex:1;">
+          </div>
+          <img id="q-image-preview" class="media-preview-img" alt="preview">
+          <div class="media-row" style="margin-top:0.5rem;">
+            <input class="form-input" id="q-video-url" type="url" placeholder="URL video YouTube/embed (opsional)" style="flex:1;">
+          </div>
+        </div>
+
+        <!-- Options Area (dynamic per type) -->
+        <div id="options-area"></div>
+
+        <!-- Time & Points -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Batas Waktu</label>
+            <div class="chip-group" id="time-chips">
+              <button class="chip" data-time="5">5d</button>
+              <button class="chip" data-time="10">10d</button>
+              <button class="chip active" data-time="20">20d</button>
+              <button class="chip" data-time="30">30d</button>
+              <button class="chip" data-time="60">60d</button>
+              <button class="chip" data-time="90">90d</button>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Poin</label>
+            <div class="chip-group" id="points-chips">
+              <button class="chip" data-pts="500">500点</button>
+              <button class="chip active" data-pts="1000">1000点</button>
+              <button class="chip" data-pts="2000">2000点</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-3">
+          <button class="btn btn-primary btn-full" id="add-q-btn" style="font-size:0.95rem;padding:0.65rem;">加 Tambah Pertanyaan</button>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+</div>
+
+<!-- BGM Picker Modal -->
+<div class="bgm-modal-backdrop" id="bgm-modal-backdrop">
+  <div class="bgm-modal">
+    <div class="bgm-modal-header">
+      <h3>音 Bank BGM</h3>
+      <button class="bgm-modal-close" id="bgm-modal-close">✕</button>
+    </div>
+    <div class="bgm-modal-search">
+      <input class="form-input" id="bgm-modal-search" placeholder="Cari nama BGM..." autocomplete="off">
+    </div>
+    <div class="bgm-modal-list" id="bgm-modal-list">
+      <div class="bgm-modal-empty">Memuat bank BGM...</div>
+    </div>
+  </div>
+</div>
+<audio id="bgm-modal-audio" style="display:none;"></audio>
+
+<script src="/js/app.js"></script>
+<script>
+  // ── State ────────────────────────────────────────────────────────
+  let questions    = [];
+  let editingIndex = -1;
+  let selectedColor  = '#FF8AAE';
+  let selectedTime   = 20;
+  let selectedPoints = 1000;
+  let selectedType   = 'pilihan_ganda';
+  let isEditMode = false;
+  let quizId     = null;
+
+  const LETTERS = ['A','B','C','D'];
+  const TYPE_LABELS = {
+    pilihan_ganda: 'Pilihan Ganda',
+    pilihan_kartu: 'Pilihan Kartu',
+    benar_salah:   'Benar/Salah',
+    pilihan_gambar:'Pilihan Gambar',
+    cocokkan:      'Cocokkan'
+  };
+
+  // ── Init ─────────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', async () => {
+    if (!Auth.requireAuth()) return;
+    const user = Auth.getUser();
+    if (user.role === 'student') { window.location.href = '/dashboard.html'; return; }
+
+    const params = new URLSearchParams(window.location.search);
+    quizId = params.get('id');
+    if (quizId) {
+      isEditMode = true;
+      document.getElementById('page-title').textContent = '編 Edit Kuis';
+      document.getElementById('page-sub').textContent   = 'Perbarui pertanyaan dan info kuismu';
+      await loadQuiz(quizId);
+    }
+
+    initColorPicker();
+    initTypeTabs();
+    initTimeChips();
+    initPointsChips();
+    initStreakToggle();
+    initBGMPicker();
+    renderOptionsArea();
+    renderQuestions();
+
+    // Image URL preview
+    document.getElementById('q-image-url').addEventListener('input', e => {
+      const img = document.getElementById('q-image-preview');
+      const url = e.target.value.trim();
+      if (url) { img.src = url; img.style.display = 'block'; }
+      else       { img.style.display = 'none'; }
+    });
+
+    // Manual URL clears the bank selection strip
+    document.getElementById('bgm-url').addEventListener('input', e => {
+      if (e.target.value.trim()) {
+        document.getElementById('bgm-selected-strip').classList.remove('visible');
+        document.getElementById('bgm-label').value = '';
+      }
+    });
+  });
+
+  // ── Load existing quiz ────────────────────────────────────────────
+  async function loadQuiz(id) {
+    try {
+      const quiz = await api.get('/quiz/' + id);
+      document.getElementById('quiz-title').value   = quiz.title;
+      document.getElementById('quiz-desc').value    = quiz.description || '';
+      document.getElementById('quiz-public').checked= quiz.isPublic;
+      document.getElementById('bgm-url').value   = quiz.bgmUrl   || '';
+      document.getElementById('bgm-label').value = quiz.bgmLabel || '';
+      if (quiz.bgmLabel) {
+        document.getElementById('bgm-selected-label').textContent = quiz.bgmLabel;
+        document.getElementById('bgm-selected-strip').classList.add('visible');
+      }
+      selectedColor = quiz.coverColor || '#FF8AAE';
+      document.querySelectorAll('.color-swatch').forEach(s =>
+        s.classList.toggle('active', s.dataset.color === selectedColor));
+
+      if (quiz.streakBonus) {
+        document.getElementById('streak-enabled').checked = quiz.streakBonus.enabled;
+        document.getElementById('streak-count').value = quiz.streakBonus.streakCount || 3;
+        document.getElementById('streak-mult').value  = quiz.streakBonus.multiplier  || 1.5;
+        updateStreakFields();
+      }
+
+      questions = (quiz.questions || []).map(normalizeQuestion);
+      renderQuestions();
+    } catch (err) {
+      Toast.error('Gagal memuat kuis: ' + err.message);
+    }
+  }
+
+  function normalizeQuestion(q) {
+    return {
+      type:       q.type       || 'pilihan_ganda',
+      text:       q.text       || '',
+      imageUrl:   q.imageUrl   || '',
+      videoUrl:   q.videoUrl   || '',
+      options:    q.options    || [],
+      matchPairs: q.matchPairs || [],
+      timeLimit:  q.timeLimit  || 20,
+      points:     q.points     || 1000
+    };
+  }
+
+  // ── Color Picker ─────────────────────────────────────────────────
+  function initColorPicker() {
+    document.getElementById('color-picker').addEventListener('click', e => {
+      const s = e.target.closest('[data-color]');
+      if (!s) return;
+      document.querySelectorAll('.color-swatch').forEach(x => x.classList.remove('active'));
+      s.classList.add('active');
+      selectedColor = s.dataset.color;
+    });
+  }
+
+  // ── Type Tabs ────────────────────────────────────────────────────
+  function initTypeTabs() {
+    document.getElementById('type-tabs').addEventListener('click', e => {
+      const btn = e.target.closest('[data-type]');
+      if (!btn) return;
+      document.querySelectorAll('.type-tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      selectedType = btn.dataset.type;
+      renderOptionsArea();
+    });
+  }
+
+  function setTypeTab(type) {
+    selectedType = type;
+    document.querySelectorAll('.type-tab').forEach(t =>
+      t.classList.toggle('active', t.dataset.type === type));
+    renderOptionsArea();
+  }
+
+  // ── Time & Points Chips ───────────────────────────────────────────
+  function initTimeChips() {
+    document.getElementById('time-chips').addEventListener('click', e => {
+      const btn = e.target.closest('[data-time]');
+      if (!btn) return;
+      document.querySelectorAll('[data-time]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedTime = parseInt(btn.dataset.time);
+    });
+  }
+  function setTimeChip(val) {
+    selectedTime = val;
+    document.querySelectorAll('[data-time]').forEach(b =>
+      b.classList.toggle('active', parseInt(b.dataset.time) === val));
+  }
+
+  function initPointsChips() {
+    document.getElementById('points-chips').addEventListener('click', e => {
+      const btn = e.target.closest('[data-pts]');
+      if (!btn) return;
+      document.querySelectorAll('[data-pts]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedPoints = parseInt(btn.dataset.pts);
+    });
+  }
+  function setPointsChip(val) {
+    selectedPoints = val;
+    document.querySelectorAll('[data-pts]').forEach(b =>
+      b.classList.toggle('active', parseInt(b.dataset.pts) === val));
+  }
+
+  // ── Streak ────────────────────────────────────────────────────────
+  function initStreakToggle() {
+    const cb     = document.getElementById('streak-enabled');
+    const slider = document.getElementById('streak-slider');
+    cb.addEventListener('change', updateStreakFields);
+    // basic visual toggle
+    cb.addEventListener('change', () => {
+      slider.style.background = cb.checked ? 'var(--mint)' : '#ccc';
+    });
+  }
+  function updateStreakFields() {
+    const enabled = document.getElementById('streak-enabled').checked;
+    document.getElementById('streak-fields').classList.toggle('visible', enabled);
+    document.getElementById('streak-slider').style.background = enabled ? 'var(--mint)' : '#ccc';
+  }
+
+  // ── Options Area (renders per type) ──────────────────────────────
+  function renderOptionsArea(opts = null) {
+    const area = document.getElementById('options-area');
+    if (selectedType === 'pilihan_ganda' || selectedType === 'pilihan_kartu') {
+      area.innerHTML = renderTextOptions(opts);
+    } else if (selectedType === 'pilihan_gambar') {
+      area.innerHTML = renderImageOptions(opts);
+    } else if (selectedType === 'benar_salah') {
+      area.innerHTML = renderTrueFalse(opts);
+    } else if (selectedType === 'cocokkan') {
+      area.innerHTML = renderMatchPairs(opts);
+      initMatchPairButtons();
+    }
+  }
+
+  function renderTextOptions(opts) {
+    const vals = opts ? opts.map(o => o.text || '') : ['','','',''];
+    const corrIdx = opts ? opts.findIndex(o => o.isCorrect) : 0;
+    return `<div class="form-group">
+      <label class="form-label">Pilihan Jawaban <span style="font-size:0.72rem;color:var(--text-soft);">(centang = benar)</span></label>
+      <div class="option-rows" id="opt-rows">
+        ${LETTERS.map((l,i) => `
+          <div class="option-row">
+            <span class="opt-letter">${l}</span>
+            <input class="form-input opt-text" id="opt-${i}" type="text"
+              placeholder="Pilihan ${l}" value="${escHtml(vals[i]||'')}" maxlength="200">
+            <input type="radio" name="correct" value="${i}" class="opt-correct-radio"
+              id="corr-${i}" ${i === (corrIdx>=0?corrIdx:0) ? 'checked' : ''}>
+            <label for="corr-${i}" style="font-family:var(--font-comic);font-size:0.72rem;color:var(--text-soft);white-space:nowrap;">Benar</label>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  function renderImageOptions(opts) {
+    const corrIdx = opts ? opts.findIndex(o => o.isCorrect) : 0;
+    return `<div class="form-group">
+      <label class="form-label">Pilihan Gambar <span style="font-size:0.72rem;color:var(--text-soft);">(URL gambar + label opsional)</span></label>
+      <div class="option-rows" id="opt-rows">
+        ${LETTERS.map((l,i) => {
+          const o = opts?.[i] || {};
+          return `<div class="option-row" style="flex-wrap:wrap;gap:0.4rem;">
+            <span class="opt-letter">${l}</span>
+            <input class="form-input" id="opt-img-${i}" type="url"
+              placeholder="URL gambar ${l}" value="${escHtml(o.imageUrl||'')}" style="flex:2;min-width:120px;">
+            <input class="form-input" id="opt-${i}" type="text"
+              placeholder="Label (opsional)" value="${escHtml(o.text||'')}" style="flex:1;min-width:80px;">
+            <input type="radio" name="correct" value="${i}" class="opt-correct-radio"
+              id="corr-${i}" ${i===(corrIdx>=0?corrIdx:0)?'checked':''}>
+            <label for="corr-${i}" style="font-family:var(--font-comic);font-size:0.72rem;color:var(--text-soft);">Benar</label>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
+  function renderTrueFalse(opts) {
+    const corrIdx = opts ? opts.findIndex(o => o.isCorrect) : 0;
+    return `<div class="form-group">
+      <label class="form-label">Pilihan</label>
+      <div class="tf-options">
+        <button type="button" class="tf-btn true-btn${corrIdx===0?' selected':''}" onclick="selectTF(0,this)">○ BENAR</button>
+        <button type="button" class="tf-btn false-btn${corrIdx===1?' selected':''}" onclick="selectTF(1,this)">× SALAH</button>
+      </div>
+      <input type="hidden" id="tf-correct" value="${corrIdx===0?'0':'1'}">
+    </div>`;
+  }
+
+  function selectTF(idx, el) {
+    document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+    document.getElementById('tf-correct').value = idx;
+  }
+
+  function renderMatchPairs(pairs) {
+    const ps = (pairs && pairs.length) ? pairs : [{ left:'', right:'' },{ left:'', right:'' }];
+    return `<div class="form-group">
+      <label class="form-label">Pasangan Cocokkan</label>
+      <div class="match-pairs" id="match-pairs">
+        ${ps.map((p,i) => renderMatchRow(p.left||'', p.right||'', i)).join('')}
+      </div>
+      <button type="button" class="btn btn-sm btn-outline mt-2" id="add-match-row-btn">+ Tambah Pasangan</button>
+    </div>`;
+  }
+
+  function renderMatchRow(left='', right='', i) {
+    return `<div class="match-pair-row" id="match-row-${i}">
+      <input class="form-input match-left" type="text" placeholder="Kiri ${i+1}" value="${escHtml(left)}" maxlength="100">
+      <span class="match-connector">↔</span>
+      <input class="form-input match-right" type="text" placeholder="Kanan ${i+1}" value="${escHtml(right)}" maxlength="100">
+      <button type="button" class="btn btn-xs btn-ghost" onclick="removeMatchRow(${i})">削</button>
+    </div>`;
+  }
+
+  function initMatchPairButtons() {
+    const addBtn = document.getElementById('add-match-row-btn');
+    if (addBtn) {
+      addBtn.addEventListener('click', () => {
+        const container = document.getElementById('match-pairs');
+        const i = container.querySelectorAll('.match-pair-row').length;
+        const div = document.createElement('div');
+        div.innerHTML = renderMatchRow('', '', i);
+        container.appendChild(div.firstElementChild);
+      });
+    }
+  }
+
+  function removeMatchRow(i) {
+    const el = document.getElementById('match-row-' + i);
+    if (el) el.remove();
+  }
+
+  // ── Get form values ───────────────────────────────────────────────
+  function getOptionsFromForm() {
+    if (selectedType === 'pilihan_ganda' || selectedType === 'pilihan_kartu') {
+      const corrIdx = parseInt(document.querySelector('input[name="correct"]:checked')?.value ?? '0');
+      return LETTERS.map((_,i) => ({
+        text: document.getElementById('opt-'+i)?.value.trim() || '',
+        isCorrect: i === corrIdx,
+        imageUrl: ''
+      })).filter(o => o.text);
+    }
+    if (selectedType === 'pilihan_gambar') {
+      const corrIdx = parseInt(document.querySelector('input[name="correct"]:checked')?.value ?? '0');
+      return LETTERS.map((_,i) => ({
+        text:      document.getElementById('opt-'+i)?.value.trim() || '',
+        imageUrl:  document.getElementById('opt-img-'+i)?.value.trim() || '',
+        isCorrect: i === corrIdx
+      })).filter(o => o.imageUrl || o.text);
+    }
+    if (selectedType === 'benar_salah') {
+      const corrIdx = parseInt(document.getElementById('tf-correct')?.value ?? '0');
+      return [
+        { text: 'Benar', isCorrect: corrIdx === 0, imageUrl: '' },
+        { text: 'Salah', isCorrect: corrIdx === 1, imageUrl: '' }
+      ];
+    }
+    return [];
+  }
+
+  function getMatchPairsFromForm() {
+    const rows = document.querySelectorAll('.match-pair-row');
+    return Array.from(rows).map(row => ({
+      left:  row.querySelector('.match-left')?.value.trim()  || '',
+      right: row.querySelector('.match-right')?.value.trim() || ''
+    })).filter(p => p.left && p.right);
+  }
+
+  // ── Validate ──────────────────────────────────────────────────────
+  function validateQuestion() {
+    const text = document.getElementById('q-text').value.trim();
+    if (!text) { Toast.warning('Masukkan teks pertanyaan'); return false; }
+
+    if (selectedType === 'cocokkan') {
+      const pairs = getMatchPairsFromForm();
+      if (pairs.length < 2) { Toast.warning('Tambahkan minimal 2 pasangan'); return false; }
+      return true;
+    }
+    if (selectedType === 'benar_salah') return true;
+
+    const opts = getOptionsFromForm();
+    if (opts.length < 2) { Toast.warning('Isi minimal 2 pilihan jawaban'); return false; }
+    if (!opts.some(o => o.isCorrect)) { Toast.warning('Tandai jawaban yang benar'); return false; }
+    return true;
+  }
+
+  // ── Add / Save question ───────────────────────────────────────────
+  document.getElementById('add-q-btn').addEventListener('click', () => {
+    if (!validateQuestion()) return;
+
+    const text = document.getElementById('q-text').value.trim();
+    const q = {
+      type:       selectedType,
+      text,
+      imageUrl:   document.getElementById('q-image-url').value.trim(),
+      videoUrl:   document.getElementById('q-video-url').value.trim(),
+      options:    selectedType === 'cocokkan' ? [] : getOptionsFromForm(),
+      matchPairs: selectedType === 'cocokkan' ? getMatchPairsFromForm() : [],
+      timeLimit:  selectedTime,
+      points:     selectedPoints
+    };
+
+    if (editingIndex >= 0) {
+      questions[editingIndex] = q;
+      editingIndex = -1;
+      document.getElementById('add-q-panel-title').textContent = '加 Tambah Pertanyaan';
+      document.getElementById('add-q-btn').textContent  = '加 Tambah Pertanyaan';
+      document.getElementById('cancel-btn').style.display = 'none';
+    } else {
+      questions.push(q);
+    }
+    resetForm();
+    renderQuestions();
+    Toast.success('Pertanyaan disimpan');
+    document.getElementById('add-q-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  function resetForm() {
+    document.getElementById('q-text').value      = '';
+    document.getElementById('q-image-url').value = '';
+    document.getElementById('q-video-url').value = '';
+    document.getElementById('q-image-preview').style.display = 'none';
+    setTypeTab('pilihan_ganda');
+    setTimeChip(20);
+    setPointsChip(1000);
+    renderOptionsArea();
+  }
+
+  function cancelEdit() {
+    editingIndex = -1;
+    resetForm();
+    document.getElementById('add-q-panel-title').textContent = '加 Tambah Pertanyaan';
+    document.getElementById('add-q-btn').textContent  = '加 Tambah Pertanyaan';
+    document.getElementById('cancel-btn').style.display = 'none';
+  }
+
+  // ── Edit / Delete ─────────────────────────────────────────────────
+  function editQuestion(i) {
+    const q = questions[i];
+    editingIndex = i;
+    setTypeTab(q.type || 'pilihan_ganda');
+    document.getElementById('q-text').value      = q.text || '';
+    document.getElementById('q-image-url').value = q.imageUrl || '';
+    document.getElementById('q-video-url').value = q.videoUrl || '';
+    const imgPreview = document.getElementById('q-image-preview');
+    if (q.imageUrl) { imgPreview.src = q.imageUrl; imgPreview.style.display = 'block'; }
+    else imgPreview.style.display = 'none';
+
+    // Render options with existing values
+    if (q.type === 'cocokkan') {
+      renderOptionsArea(q.matchPairs);
+      // re-init after DOM update
+      setTimeout(initMatchPairButtons, 0);
+    } else {
+      renderOptionsArea(q.options);
+    }
+
+    setTimeChip(q.timeLimit || 20);
+    setPointsChip(q.points || 1000);
+
+    document.getElementById('add-q-panel-title').textContent = '編 Edit Pertanyaan ' + (i+1);
+    document.getElementById('add-q-btn').textContent  = '保 Simpan Perubahan';
+    document.getElementById('cancel-btn').style.display = '';
+    document.getElementById('add-q-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function deleteQuestion(i) {
+    questions.splice(i, 1);
+    if (editingIndex === i) cancelEdit();
+    else if (editingIndex > i) editingIndex--;
+    renderQuestions();
+    Toast.info('Pertanyaan dihapus');
+  }
+
+  // ── Render Question List ──────────────────────────────────────────
+  function renderQuestions() {
+    const list  = document.getElementById('q-list');
+    const empty = document.getElementById('q-empty');
+    const count = questions.length;
+    document.getElementById('q-count-big').textContent = count;
+    document.getElementById('q-counter').textContent   = count + ' Pertanyaan';
+
+    if (!count) {
+      empty.style.display = 'block';
+      // Remove all q-item elements
+      list.querySelectorAll('.q-item').forEach(el => el.remove());
+      return;
+    }
+    empty.style.display = 'none';
+
+    // Rebuild
+    const existing = list.querySelectorAll('.q-item');
+    existing.forEach(el => el.remove());
+
+    questions.forEach((q, i) => {
+      const div = document.createElement('div');
+      div.className = 'q-item';
+      div.id = 'q-item-' + i;
+      div.innerHTML = buildQItemHTML(q, i);
+      list.insertBefore(div, document.getElementById('q-empty'));
+    });
+  }
+
+  function buildQItemHTML(q, i) {
+    let bodyHTML = '';
+    if (q.type === 'cocokkan') {
+      bodyHTML = q.matchPairs.map(p =>
+        `<span class="q-opt-chip">${escHtml(p.left)} ↔ ${escHtml(p.right)}</span>`).join('');
+    } else if (q.type === 'benar_salah') {
+      bodyHTML = q.options.map(o =>
+        `<span class="q-opt-chip${o.isCorrect?' correct':''}">${escHtml(o.text)}</span>`).join('');
+    } else {
+      bodyHTML = q.options.map(o => {
+        const label = o.imageUrl ? `[画]${o.text||''}` : o.text;
+        return `<span class="q-opt-chip${o.isCorrect?' correct':''}">${escHtml(label)}</span>`;
+      }).join('');
+    }
+
+    return `
+      <div class="q-item-head">
+        <span class="q-item-num">${i+1}</span>
+        <span class="q-item-text">${escHtml(q.text)}</span>
+        <span class="q-item-type-badge">${TYPE_LABELS[q.type]||q.type}</span>
+        <div class="q-item-actions">
+          <button class="btn btn-xs" style="background:var(--yellow);border:2px solid var(--ink);color:var(--ink);" onclick="editQuestion(${i})">編</button>
+          <button class="btn btn-xs btn-ghost" onclick="deleteQuestion(${i})">削</button>
+        </div>
+      </div>
+      <div class="q-item-body">
+        <div class="q-opts-preview">${bodyHTML}</div>
+        ${q.imageUrl ? `<div class="form-hint-sm">画 画像あり</div>` : ''}
+        <div class="q-item-meta">時 ${q.timeLimit}d &nbsp;·&nbsp; 点 ${fmtNumber(q.points)}</div>
+      </div>`;
+  }
+
+  // ── Save Quiz ────────────────────────────────────────────────────
+  document.getElementById('save-btn').addEventListener('click', async () => {
+    const title = document.getElementById('quiz-title').value.trim();
+    if (!title)           { Toast.warning('Judul kuis tidak boleh kosong'); document.getElementById('quiz-title').focus(); return; }
+    if (!questions.length){ Toast.warning('Tambahkan minimal 1 pertanyaan'); return; }
+
+    const btn = document.getElementById('save-btn');
+    btn.disabled = true; btn.textContent = 'Menyimpan...';
+
+    const payload = {
+      title,
+      description: document.getElementById('quiz-desc').value.trim(),
+      questions,
+      isPublic:    document.getElementById('quiz-public').checked,
+      coverColor:  selectedColor,
+      bgmUrl:      document.getElementById('bgm-url').value.trim(),
+      bgmLabel:    document.getElementById('bgm-label').value.trim(),
+      streakBonus: {
+        enabled:     document.getElementById('streak-enabled').checked,
+        streakCount: parseInt(document.getElementById('streak-count').value) || 3,
+        multiplier:  parseFloat(document.getElementById('streak-mult').value) || 1.5
+      }
+    };
+
+    try {
+      if (isEditMode && quizId) {
+        await api.put('/quiz/' + quizId, payload);
+        Toast.success('Kuis berhasil diperbarui');
+      } else {
+        const quiz = await api.post('/quiz', payload);
+        quizId = quiz._id;
+        isEditMode = true;
+        history.replaceState(null, '', '?id=' + quizId);
+        Toast.success('Kuis berhasil disimpan');
+      }
+      setTimeout(() => { window.location.href = '/dashboard.html'; }, 1200);
+    } catch (err) {
+      Toast.error(err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = '保 Simpan Kuis';
+    }
+  });
+
+  // ── BGM Picker ────────────────────────────────────────────────────
+  let bgmBank       = [];
+  let bgmModalAudio = null;
+  let bgmActivePrevBtn = null;
+
+  function initBGMPicker() {
+    bgmModalAudio = document.getElementById('bgm-modal-audio');
+
+    document.getElementById('bgm-pick-btn').addEventListener('click', openBGMModal);
+    document.getElementById('bgm-modal-close').addEventListener('click', closeBGMModal);
+    document.getElementById('bgm-modal-backdrop').addEventListener('click', e => {
+      if (e.target === document.getElementById('bgm-modal-backdrop')) closeBGMModal();
+    });
+    document.getElementById('bgm-clear-btn').addEventListener('click', clearBGM);
+    document.getElementById('bgm-modal-search').addEventListener('input', e => {
+      renderBGMModal(e.target.value.toLowerCase());
+    });
+  }
+
+  async function openBGMModal() {
+    document.getElementById('bgm-modal-backdrop').classList.add('open');
+    document.getElementById('bgm-modal-search').value = '';
+    if (!bgmBank.length) {
+      try {
+        bgmBank = await api.get('/bgm');
+      } catch {
+        bgmBank = [];
+      }
+    }
+    renderBGMModal('');
+    document.getElementById('bgm-modal-search').focus();
+  }
+
+  function closeBGMModal() {
+    document.getElementById('bgm-modal-backdrop').classList.remove('open');
+    stopBGMPreview();
+  }
+
+  function renderBGMModal(query) {
+    const list = document.getElementById('bgm-modal-list');
+    const filtered = bgmBank.filter(t => t.label.toLowerCase().includes(query));
+    if (!filtered.length) {
+      list.innerHTML = `<div class="bgm-modal-empty">${bgmBank.length ? 'Tidak ada hasil' : 'Bank BGM masih kosong.<br>Admin belum menambahkan track.'}</div>`;
+      return;
+    }
+    list.innerHTML = filtered.map((t, i) => `
+      <div class="bgm-track-item" onclick="selectBGM('${escHtml(t.url)}','${escHtml(t.label).replace(/'/g,"\\'")}')" title="${escHtml(t.label)}">
+        <span class="bgm-track-num">${i+1}</span>
+        <span class="bgm-track-label">${escHtml(t.label)}</span>
+        <button type="button" class="bgm-track-preview" id="prev-${escHtml(t._id)}"
+          onclick="event.stopPropagation();toggleBGMPreview('${escHtml(t.url)}','prev-${escHtml(t._id)}')">▶</button>
+        <button type="button" class="bgm-track-select"
+          onclick="event.stopPropagation();selectBGM('${escHtml(t.url)}','${escHtml(t.label).replace(/'/g,"\\'")}')">Pilih</button>
+      </div>`).join('');
+  }
+
+  function toggleBGMPreview(url, btnId) {
+    const btn = document.getElementById(btnId);
+    if (bgmModalAudio.src.endsWith(url) && !bgmModalAudio.paused) {
+      stopBGMPreview(); return;
+    }
+    stopBGMPreview();
+    bgmModalAudio.src = url;
+    bgmModalAudio.play().catch(() => Toast.warning('Tidak bisa memutar URL ini'));
+    if (btn) { btn.textContent = '■'; bgmActivePrevBtn = btn; }
+    bgmModalAudio.onended = () => stopBGMPreview();
+  }
+
+  function stopBGMPreview() {
+    bgmModalAudio.pause();
+    if (bgmActivePrevBtn) { bgmActivePrevBtn.textContent = '▶'; bgmActivePrevBtn = null; }
+  }
+
+  function selectBGM(url, label) {
+    document.getElementById('bgm-url').value   = url;
+    document.getElementById('bgm-label').value = label;
+    document.getElementById('bgm-selected-label').textContent = label;
+    document.getElementById('bgm-selected-strip').classList.add('visible');
+    closeBGMModal();
+    Toast.success('BGM dipilih: ' + label);
+  }
+
+  function clearBGM() {
+    document.getElementById('bgm-url').value   = '';
+    document.getElementById('bgm-label').value = '';
+    document.getElementById('bgm-selected-strip').classList.remove('visible');
+  }
+
+  // ── Utils ─────────────────────────────────────────────────────────
+  function escHtml(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+</script>
+</body>
+</html>

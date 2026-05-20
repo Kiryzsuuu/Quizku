@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kuis Langsung — Kaji.in</title>
+  <link rel="stylesheet" href="/css/shared.css">
+  <style>
+    body { background: #1E1535; color: white; min-height: 100vh; }
+
+    /* ── Screens ── */
+    .screen { display: none; min-height: 100vh; flex-direction: column; }
+    .screen.active { display: flex; }
+
+    /* ── Top bar ── */
+    .quiz-topbar {
+      background: rgba(255,255,255,0.06); border-bottom: 2px solid rgba(255,255,255,0.1);
+      padding: 0.6rem 1.5rem; display: flex;
+      align-items: center; justify-content: space-between; gap: 1rem;
+      position: sticky; top: 0; z-index: 50; flex-shrink: 0; backdrop-filter: blur(10px);
+    }
+    .quiz-topbar-logo { font-family: var(--font-display); font-size: 1.1rem; color: white; }
+    .quiz-topbar-logo span { color: var(--sakura); }
+    .quiz-topbar-meta { font-family: var(--font-display); font-size: 0.75rem; color: rgba(255,255,255,0.5); }
+
+    /* ── Loading ── */
+    #screen-loading { align-items: center; justify-content: center; text-align: center; gap: 1rem; }
+    .loading-logo { font-family: var(--font-display); font-size: 3rem; margin-bottom: 0.5rem; }
+    .loading-logo span { color: var(--sakura); }
+
+    /* ── Waiting Room ── */
+    #screen-waiting {
+      background: #1E1535;
+      background-image: radial-gradient(circle, rgba(155,138,245,0.08) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+    .waiting-inner { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center; }
+    .waiting-code-label { font-family: var(--font-display); font-size: 0.72rem; letter-spacing: 0.2em; color: rgba(255,255,255,0.45); margin-bottom: 0.5rem; }
+    .waiting-title { font-family: var(--font-display); font-size: clamp(1.2rem,3vw,1.8rem); margin: 1.5rem 0 0.5rem; }
+    .waiting-desc  { font-size: 0.9rem; color: rgba(255,255,255,0.55); margin-bottom: 2rem; }
+    .room-code-display { font-family: var(--font-display); font-size: clamp(2rem,8vw,4rem); letter-spacing: 0.2em; color: var(--honey); text-shadow: 0 0 30px rgba(255,213,102,0.4); }
+
+    .participants-grid {
+      display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;
+      max-width: 700px; max-height: 220px; overflow-y: auto; padding: 0.5rem;
+    }
+    .participant-chip {
+      background: rgba(255,255,255,0.1); color: white; border-radius: var(--radius-full);
+      padding: 0.3rem 0.75rem; font-size: 0.82rem; font-family: var(--font-display);
+      display: flex; align-items: center; gap: 0.4rem; border: 1px solid rgba(255,255,255,0.15);
+    }
+    .host-controls { margin-top: 2rem; display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+
+    /* ── Question Screen ── */
+    #screen-question { background: #1E1535; }
+    .question-header {
+      background: rgba(255,255,255,0.04);
+      padding: 0.75rem 1.5rem; display: flex; align-items: center;
+      justify-content: space-between; gap: 1rem; flex-shrink: 0;
+      border-bottom: 2px solid rgba(255,255,255,0.08);
+    }
+    .q-progress-label { font-family: var(--font-display); font-size: 0.85rem; color: rgba(255,255,255,0.7); }
+    .answer-count { font-family: var(--font-display); font-size: 1.4rem; color: var(--honey); line-height: 1; }
+    .answer-label { font-family: var(--font-display); font-size: 0.65rem; color: rgba(255,255,255,0.4); letter-spacing: 0.1em; }
+
+    .question-body {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 1.5rem; gap: 1.5rem;
+      max-width: 840px; margin: 0 auto; width: 100%;
+    }
+    .question-text {
+      font-family: var(--font-display); font-size: clamp(1rem,3vw,1.6rem);
+      line-height: 1.35; color: white; text-align: center;
+    }
+    .student-score-bar {
+      font-family: var(--font-display); font-size: 1rem; color: var(--honey);
+      padding: 0.4rem 1.25rem; background: rgba(255,213,102,0.1);
+      border: 1.5px solid rgba(255,213,102,0.3); border-radius: var(--radius-full);
+    }
+    .options-wrapper { width: 100%; }
+
+    /* ── Reveal Screen ── */
+    #screen-reveal { background: #1E1535; }
+    .reveal-inner {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      justify-content: flex-start; padding: 2rem; gap: 1.5rem;
+      max-width: 640px; margin: 0 auto; width: 100%;
+    }
+    .result-banner {
+      width: 100%; padding: 1.5rem; border-radius: var(--radius); text-align: center;
+    }
+    .result-banner.correct   { background: linear-gradient(135deg,#27AE80,#4EDBA8); }
+    .result-banner.incorrect { background: linear-gradient(135deg,#E8002D,#FF8066); }
+    .result-banner.host-view { background: linear-gradient(135deg,var(--sky),var(--lavender)); }
+    .result-kanji { font-family: var(--font-display); font-size: 3rem; line-height: 1; margin-bottom: 0.5rem; }
+    .result-pts   { font-family: var(--font-display); font-size: 2rem; margin-top: 0.25rem; color: var(--honey); }
+    .result-total { font-family: var(--font-display); font-size: 0.8rem; opacity: 0.85; margin-top: 0.25rem; }
+    .leaderboard-title { font-family: var(--font-display); font-size: 0.9rem; margin-bottom: 0.75rem; color: rgba(255,255,255,0.6); }
+
+    /* ── Final Screen ── */
+    #screen-final { background: #1E1535; align-items: center; justify-content: center; padding: 2rem; }
+    .final-title { font-family: var(--font-display); font-size: clamp(1.5rem,5vw,3rem); margin-bottom: 0.5rem; text-align:center; }
+    .final-sub   { font-family: var(--font-display); font-size: 1.1rem; color: var(--honey); letter-spacing: 0.1em; margin-bottom: 2rem; text-align:center; }
+    .final-leader { max-width: 540px; width: 100%; margin: 0 auto; }
+
+    /* ── Comments Section (final screen) ── */
+    .comments-section {
+      max-width: 540px; width: 100%; margin: 0 auto;
+      background: rgba(255,255,255,0.05); border-radius: var(--radius);
+      border: 1px solid rgba(255,255,255,0.1); padding: 1.25rem; margin-top: 1.5rem;
+    }
+    .comments-title {
+      font-family: var(--font-display); font-size: 0.95rem; color: rgba(255,255,255,0.7);
+      margin-bottom: 1rem;
+    }
+    .comment-form-row { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+    .comment-form-row input {
+      flex: 1; background: rgba(255,255,255,0.08); border: 1.5px solid rgba(255,255,255,0.15);
+      color: white; border-radius: var(--radius-full); padding: 0.5rem 1rem;
+      font-family: var(--font-body); font-size: 0.85rem;
+    }
+    .comment-form-row input::placeholder { color: rgba(255,255,255,0.3); }
+    .comment-form-row input:focus { outline: none; border-color: var(--sakura); }
+
+    .comment-item-dark {
+      display: flex; gap: 0.75rem; margin-bottom: 0.875rem;
+    }
+    .comment-item-dark .comment-body { flex: 1; }
+    .comment-item-dark .comment-name { font-family: var(--font-display); font-size: 0.82rem; color: var(--honey); }
+    .comment-item-dark .comment-time { font-size: 0.72rem; color: rgba(255,255,255,0.35); margin-left: 0.5rem; }
+    .comment-item-dark .comment-text { font-size: 0.85rem; color: rgba(255,255,255,0.8); margin-top: 0.2rem; line-height: 1.5; }
+    .comment-item-dark .comment-delete {
+      background: none; border: none; color: rgba(255,255,255,0.3);
+      cursor: pointer; font-family: var(--font-display); font-size: 0.8rem;
+    }
+    .comment-item-dark .comment-delete:hover { color: #FF6060; }
+    #comments-list-dark { max-height: 280px; overflow-y: auto; }
+
+    /* ── Error Screen ── */
+    #screen-error { background: #1E1535; align-items: center; justify-content: center; text-align: center; padding: 2rem; gap: 1rem; }
+    .error-kanji { font-family: var(--font-display); font-size: 6rem; color: var(--sakura); line-height: 1; }
+
+    /* ── BGM Panel ── */
+    .bgm-panel {
+      position: fixed; bottom: 1.25rem; right: 1.25rem; z-index: 100;
+      display: flex; align-items: center; gap: 0.5rem;
+      background: rgba(30,21,53,0.92); border: 1.5px solid rgba(255,255,255,0.15);
+      border-radius: var(--radius-full); padding: 0.4rem 0.9rem 0.4rem 0.4rem;
+      backdrop-filter: blur(10px); box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      transition: opacity 0.3s;
+    }
+    .bgm-panel.hidden { opacity: 0; pointer-events: none; }
+    .bgm-btn {
+      background: linear-gradient(135deg, var(--sakura), var(--lavender));
+      border: none; color: white; border-radius: var(--radius-full);
+      width: 32px; height: 32px; cursor: pointer; font-family: var(--font-display);
+      font-size: 1rem; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: transform 0.2s;
+    }
+    .bgm-btn:hover { transform: scale(1.1); }
+    .bgm-label { font-family: var(--font-display); font-size: 0.72rem; color: rgba(255,255,255,0.6); max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ── Question media ── */
+    .q-media { width: 100%; max-width: 480px; margin: 0 auto; }
+    .q-media img  { width: 100%; max-height: 220px; object-fit: contain; border: 3px solid rgba(255,255,255,0.15); border-radius: 4px; }
+    .q-media iframe { width: 100%; aspect-ratio: 16/9; border: none; border-radius: 4px; }
+
+    /* ── Card-style options (pilihan_kartu) ── */
+    .card-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: 100%;
+    }
+    .card-option {
+      padding: 1.5rem 1rem; border: 3px solid var(--ink);
+      font-family: var(--font-comic); font-size: 1.1rem; text-align: center;
+      cursor: pointer; transition: transform 0.1s, box-shadow 0.1s;
+      box-shadow: 5px 5px 0 rgba(0,0,0,0.4); border-radius: 4px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem;
+    }
+    .card-option:hover:not(:disabled)  { transform: translate(-2px,-2px); box-shadow: 7px 7px 0 rgba(0,0,0,0.4); }
+    .card-option:active:not(:disabled) { transform: translate(3px,3px);  box-shadow: 2px 2px 0 rgba(0,0,0,0.4); }
+    .card-option.selected   { outline: 4px solid var(--honey); }
+    .card-option.correct    { background: #27AE80 !important; }
+    .card-option.incorrect  { opacity: 0.5; }
+    .card-option img { max-height: 80px; object-fit: contain; }
+    .card-colors   { --c0:#E8002D; --c1:#1368CE; --c2:#D89E00; --c3:#26890C; }
+
+    /* ── True/False options ── */
+    .tf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: 100%; }
+    .tf-option {
+      padding: 2rem 1rem; border: 3px solid var(--ink);
+      font-family: var(--font-comic); font-size: 1.4rem; text-align: center;
+      cursor: pointer; box-shadow: 5px 5px 0 rgba(0,0,0,0.4); border-radius: 4px;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .tf-option:hover:not(:disabled) { transform: translate(-2px,-2px); }
+    .tf-option.true-opt  { background: #4EDBA8; color: var(--ink); }
+    .tf-option.false-opt { background: #FF4545; color: white; }
+    .tf-option.selected  { outline: 4px solid var(--honey); }
+    .tf-option.correct   { outline: 4px solid white; }
+    .tf-option.incorrect { opacity: 0.45; }
+
+    /* ── Match options ── */
+    .match-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; width: 100%; }
+    .match-col { display: flex; flex-direction: column; gap: 0.5rem; }
+    .match-col-label { font-family: var(--font-comic); font-size: 0.72rem; color: rgba(255,255,255,0.4); margin-bottom: 0.25rem; letter-spacing: 0.1em; text-align: center; }
+    .match-chip {
+      padding: 0.65rem 1rem; border: 2.5px solid rgba(255,255,255,0.25);
+      border-radius: 4px; text-align: center; font-family: var(--font-comic);
+      font-size: 0.9rem; cursor: pointer; background: rgba(255,255,255,0.08);
+      transition: all 0.15s;
+    }
+    .match-chip:hover         { background: rgba(255,255,255,0.15); }
+    .match-chip.selected-left { background: var(--sakura); border-color: var(--sakura); color: white; }
+    .match-chip.matched       { background: #27AE80; border-color: #27AE80; cursor: default; }
+    .match-chip.wrong         { background: #E8002D; border-color: #E8002D; animation: shake 0.3s; }
+    @keyframes shake { 0%,100%{transform:none} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+    .match-submit-btn { margin-top: 1rem; }
+
+    /* ── Streak Toast ── */
+    .streak-toast {
+      position: fixed; top: 80px; left: 50%; transform: translateX(-50%) scale(0.8);
+      background: var(--yellow); color: var(--ink); border: 3px solid var(--ink);
+      box-shadow: 5px 5px 0 var(--ink); padding: 0.6rem 1.5rem;
+      font-family: var(--font-comic); font-size: 1.1rem; font-weight: 700;
+      z-index: 200; opacity: 0; transition: all 0.3s; pointer-events: none;
+    }
+    .streak-toast.show { opacity: 1; transform: translateX(-50%) scale(1); }
+
+    @media (max-width: 640px) {
+      .question-text { font-size: 1rem; }
+      .option-grid { grid-template-columns: 1fr; }
+      .card-grid   { grid-template-columns: 1fr; }
+      .tf-grid     { grid-template-columns: 1fr; }
+      .match-layout{ grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Streak Toast -->
+<div class="streak-toast" id="streak-toast">連 STREAK BONUS!</div>
+
+<!-- BGM Panel -->
+<div class="bgm-panel hidden" id="bgm-panel">
+  <button class="bgm-btn" id="bgm-btn" title="Toggle BGM">音</button>
+  <span class="bgm-label" id="bgm-label-text">BGM</span>
+</div>
+<audio id="bgm-audio" loop preload="auto"></audio>
+
+<!-- SCREEN: LOADING -->
+<div class="screen active" id="screen-loading">
+  <div class="loading-logo">Kaji<span>.in</span></div>
+  <div class="spinner spinner-lg"></div>
+  <p style="font-family:var(--font-display);font-size:0.85rem;color:rgba(255,255,255,0.45);" id="loading-text">Menghubungkan...</p>
+</div>
+
+<!-- SCREEN: WAITING ROOM -->
+<div class="screen" id="screen-waiting">
+  <div class="quiz-topbar">
+    <div class="quiz-topbar-logo">Kaji<span>.in</span></div>
+    <div class="quiz-topbar-meta" id="quiz-topbar-title">—</div>
+  </div>
+  <div class="waiting-inner">
+    <div class="waiting-code-label">KODE SESI</div>
+    <div class="room-code-display" id="display-code">——————</div>
+    <h2 class="waiting-title" id="waiting-title">Menunggu...</h2>
+    <p class="waiting-desc" id="waiting-desc">Menunggu host memulai kuis</p>
+    <div class="participants-grid" id="participants-grid"></div>
+
+    <div class="host-controls" id="host-controls" style="display:none;">
+      <div style="text-align:center;margin-bottom:0.5rem;width:100%;">
+        <span style="font-family:var(--font-display);font-size:0.8rem;color:rgba(255,255,255,0.45);">
+          人 <span id="participant-count">0</span> peserta bergabung
+        </span>
+      </div>
+      <button class="btn btn-primary btn-lg" id="start-btn">始 Mulai Kuis</button>
+      <button class="btn btn-ghost btn-sm" onclick="window.location.href='/dashboard.html'">戻 Kembali</button>
+    </div>
+
+    <div id="student-waiting-msg" style="margin-top:1rem;display:none;">
+      <span style="font-family:var(--font-display);font-size:0.82rem;color:rgba(255,255,255,0.35);">
+        待機中 — Menunggu host memulai kuis...
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN: QUESTION -->
+<div class="screen" id="screen-question">
+  <div class="question-header">
+    <div>
+      <div class="q-progress-label">問 <span id="q-current">1</span> / <span id="q-total">1</span></div>
+      <div class="progress-bar mt-1" style="width:200px;background:rgba(255,255,255,0.1);">
+        <div class="progress-fill" id="q-bar" style="width:100%;transition:none;background:linear-gradient(90deg,var(--sakura),var(--lavender));"></div>
+      </div>
+    </div>
+    <div class="timer-ring" id="timer-ring">
+      <span class="timer-num" id="timer-num">20</span>
+    </div>
+    <div id="answer-progress" style="display:none;text-align:right;">
+      <div class="answer-count"><span id="answered-count">0</span>/<span id="total-count">0</span></div>
+      <div class="answer-label">menjawab</div>
+    </div>
+  </div>
+
+  <div class="question-body">
+    <div class="question-text" id="question-text">—</div>
+    <div id="student-score-bar" class="student-score-bar" style="display:none;">点 <span id="live-score">0</span></div>
+    <div class="options-wrapper">
+      <div class="option-grid" id="options-container"></div>
+    </div>
+    <div id="host-action-bar" style="display:none;width:100%;text-align:center;margin-top:0.5rem;">
+      <button class="btn btn-primary btn-lg" id="next-q-btn">次 Pertanyaan Berikutnya</button>
+      <button class="btn btn-ghost btn-sm" id="end-quiz-btn" style="margin-left:0.75rem;">終 Akhiri Kuis</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN: ANSWER REVEAL -->
+<div class="screen" id="screen-reveal">
+  <div class="quiz-topbar">
+    <div class="quiz-topbar-logo">Kaji<span>.in</span></div>
+    <div class="quiz-topbar-meta">析 Hasil Pertanyaan</div>
+  </div>
+  <div class="reveal-inner">
+    <div class="result-banner" id="result-banner">
+      <div class="result-kanji" id="result-kanji">—</div>
+      <div id="result-text">—</div>
+      <div class="result-pts" id="result-pts"></div>
+      <div class="result-total" id="result-total"></div>
+    </div>
+    <div style="width:100%;">
+      <div class="leaderboard-title">順位 Papan Skor Sementara</div>
+      <div id="reveal-leaderboard"></div>
+    </div>
+    <div style="width:100%;display:none;" id="next-btn-row">
+      <button class="btn btn-primary btn-full btn-lg" id="next-q-btn-2">次 Pertanyaan Berikutnya</button>
+      <button class="btn btn-ghost btn-sm btn-full mt-2" id="end-btn-2">終 Akhiri Kuis</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN: FINAL LEADERBOARD -->
+<div class="screen" id="screen-final">
+  <div class="quiz-topbar">
+    <div class="quiz-topbar-logo">Kaji<span>.in</span></div>
+    <div class="quiz-topbar-meta">勝 Hasil Akhir</div>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:2rem;display:flex;flex-direction:column;align-items:center;">
+    <div class="final-title">勝 KUIS SELESAI!</div>
+    <div class="final-sub">GAME OVER</div>
+    <div class="final-leader" id="final-leaderboard"></div>
+    <div class="flex gap-2 mt-4" style="flex-wrap:wrap;justify-content:center;">
+      <a href="/dashboard.html" class="btn btn-primary btn-lg">控 Dashboard</a>
+      <a href="/" class="btn btn-ghost btn-lg">家 Beranda</a>
+    </div>
+
+    <!-- Comments Section -->
+    <div class="comments-section" id="comments-section" style="display:none;">
+      <div class="comments-title">言 Komentar</div>
+      <div id="comments-list-dark"></div>
+      <div class="comment-form-row" id="comment-form-row" style="display:none;">
+        <input type="text" id="comment-input" placeholder="Tulis komentar..." maxlength="500">
+        <button class="btn btn-primary btn-sm" id="comment-submit-btn">送</button>
+      </div>
+      <div id="comment-login-msg" style="font-family:var(--font-display);font-size:0.78rem;color:rgba(255,255,255,0.35);text-align:center;display:none;">
+        <a href="/login.html" style="color:var(--sakura);">Masuk</a> untuk berkomentar
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN: ERROR -->
+<div class="screen" id="screen-error">
+  <div class="error-kanji">誤</div>
+  <h2 style="font-family:var(--font-display);font-size:1.5rem;" id="error-title">Terjadi Kesalahan</h2>
+  <p style="color:rgba(255,255,255,0.5);font-size:0.9rem;" id="error-desc">Tidak dapat terhubung ke sesi.</p>
+  <div class="flex gap-2 mt-3" style="flex-wrap:wrap;justify-content:center;">
+    <button class="btn btn-primary" onclick="location.reload()">Coba Lagi</button>
+    <a href="/" class="btn btn-ghost">家 Beranda</a>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/app.js"></script>
+<script>
+  const params  = new URLSearchParams(window.location.search);
+  const CODE    = (params.get('code') || '').toUpperCase();
+  const NAME    = params.get('name') || '';
+  const IS_HOST = params.get('host') === '1';
+  const USER    = Auth.getUser();
+
+  let socket;
+  let timerInterval;
+  let timerSeconds   = 0;
+  let myScore        = 0;
+  let hasAnswered    = false;
+  let currentQuizId  = null;
+  let currentQType   = 'pilihan_ganda';
+  let matchState     = { selectedLeft: null, matched: {} };
+
+  const OPTION_LETTERS = ['A','B','C','D'];
+  const CARD_BG = ['#E8002D','#1368CE','#D89E00','#26890C'];
+
+  // ── BGM ────────────────────────────────────────────────────────
+  const bgmAudio = document.getElementById('bgm-audio');
+  const bgmPanel = document.getElementById('bgm-panel');
+  const bgmBtn   = document.getElementById('bgm-btn');
+  let bgmMuted = false;
+
+  function initBGM(url, label) {
+    if (!url) return;
+    bgmAudio.src = url;
+    bgmPanel.classList.remove('hidden');
+    document.getElementById('bgm-label-text').textContent = label || 'BGM';
+    bgmAudio.play().catch(() => {});
+    bgmBtn.textContent = '音';
+  }
+
+  bgmBtn.addEventListener('click', () => {
+    bgmMuted = !bgmMuted;
+    bgmAudio.muted = bgmMuted;
+    bgmBtn.textContent = bgmMuted ? '消' : '音';
+  });
+
+  // ── Screen Manager ─────────────────────────────────────────────
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + id).classList.add('active');
+    if (id === 'final') loadComments();
+  }
+
+  function showError(title, desc) {
+    document.getElementById('error-title').textContent = title;
+    document.getElementById('error-desc').textContent  = desc;
+    showScreen('error');
+    if (socket) socket.disconnect();
+  }
+
+  // ── Init ────────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    if (!CODE) return showError('Kode Tidak Valid', 'Tidak ada kode sesi yang diberikan.');
+    if (!IS_HOST && !NAME) { window.location.href = '/join.html?code=' + CODE; return; }
+    document.getElementById('loading-text').textContent =
+      IS_HOST ? 'Memuat sesi host...' : 'Bergabung sebagai ' + NAME + '...';
+    connectSocket();
+  });
+
+  function connectSocket() {
+    socket = io();
+
+    socket.on('connect', () => {
+      if (IS_HOST) {
+        if (!USER) { window.location.href = '/login.html'; return; }
+        socket.emit('hostJoin', { code: CODE, userId: USER.id });
+      } else {
+        socket.emit('studentJoin', { code: CODE, name: NAME });
+      }
+    });
+
+    socket.on('connect_error', () => showError('Koneksi Gagal', 'Periksa koneksi internetmu dan coba lagi.'));
+    socket.on('hostJoined',   data => setupWaitingRoom(data, true));
+    socket.on('studentJoined',data => setupWaitingRoom(data, false));
+    socket.on('joinError',    msg  => showError('Gagal Bergabung', msg));
+
+    socket.on('participantUpdate', ({ participants }) => {
+      renderParticipants(participants);
+      if (IS_HOST) document.getElementById('participant-count').textContent = participants.length;
+    });
+
+    socket.on('quizStarted', data => {
+      if (data.quiz?.bgmUrl) initBGM(data.quiz.bgmUrl, data.quiz.bgmLabel);
+      currentQuizId = data.quiz?._id || data.quizId;
+      showQuestionScreen(data);
+    });
+
+    socket.on('nextQuestion', data => {
+      hasAnswered = false;
+      showQuestionScreen(data);
+      showScreen('question');
+    });
+
+    socket.on('answerResult', ({ correct, points, bonusPoints, streakTriggered, streak, totalScore }) => {
+      myScore = totalScore;
+      document.getElementById('live-score').textContent = fmtNumber(totalScore);
+      hasAnswered = true;
+      window._lastAnswerCorrect = correct;
+      window._lastAnswerPoints  = points;
+      window._lastStreak        = streak || 0;
+      if (streakTriggered) showStreakToast(streak, bonusPoints);
+    });
+
+    socket.on('answerCount', ({ answered, total }) => {
+      if (IS_HOST) {
+        document.getElementById('answered-count').textContent = answered;
+        document.getElementById('total-count').textContent    = total;
+        if (answered >= total) showHostAction();
+      }
+    });
+
+    socket.on('timeUp', ({ correctIndex, correctPairs, leaderboard }) => {
+      clearTimer();
+      revealAnswers(correctIndex, correctPairs || [], leaderboard);
+    });
+
+    socket.on('quizEnded', ({ leaderboard, quizId }) => {
+      clearTimer();
+      if (quizId) currentQuizId = quizId;
+      showFinalScreen(leaderboard);
+    });
+
+    socket.on('error', msg => Toast.error(msg));
+  }
+
+  // ── Waiting Room ───────────────────────────────────────────────
+  function setupWaitingRoom(data, isHost) {
+    showScreen('waiting');
+    const title = data.quiz?.title || data.quizTitle || 'Kuis';
+    if (data.quiz?.bgmUrl) initBGM(data.quiz.bgmUrl, data.quiz.bgmLabel);
+    currentQuizId = data.quiz?._id;
+    document.getElementById('display-code').textContent      = CODE;
+    document.getElementById('quiz-topbar-title').textContent = title;
+
+    if (isHost) {
+      document.getElementById('waiting-title').textContent = title;
+      document.getElementById('waiting-desc').textContent  = 'Bagikan kode kepada peserta dan mulai kuis saat siap';
+      document.getElementById('host-controls').style.display       = 'block';
+      document.getElementById('student-waiting-msg').style.display = 'none';
+      document.getElementById('participant-count').textContent = data.participants?.length || 0;
+      renderParticipants(data.participants || []);
+      document.getElementById('start-btn').addEventListener('click', () => {
+        if (!parseInt(document.getElementById('participant-count').textContent)) {
+          Toast.warning('Belum ada peserta yang bergabung'); return;
+        }
+        socket.emit('startQuiz', { code: CODE });
+        document.getElementById('start-btn').disabled = true;
+        document.getElementById('start-btn').textContent = 'Memulai...';
+      });
+    } else {
+      document.getElementById('waiting-title').textContent = title;
+      document.getElementById('waiting-desc').textContent  = 'Kamu sudah bergabung!';
+      document.getElementById('host-controls').style.display       = 'none';
+      document.getElementById('student-waiting-msg').style.display = 'block';
+    }
+  }
+
+  function renderParticipants(list) {
+    const grid = document.getElementById('participants-grid');
+    if (!list.length) {
+      grid.innerHTML = '<span style="font-family:var(--font-display);font-size:0.8rem;color:rgba(255,255,255,0.25);">Belum ada peserta...</span>';
+      return;
+    }
+    grid.innerHTML = list.map(p =>
+      `<div class="participant-chip">
+        <span style="font-family:var(--font-display);color:var(--honey);">${escHtml(p.name.charAt(0).toUpperCase())}</span>
+        ${escHtml(p.name)}
+      </div>`).join('');
+  }
+
+  // ── Question Screen ─────────────────────────────────────────────
+  function showQuestionScreen({ currentQuestion, total, question }) {
+    showScreen('question');
+    hasAnswered   = false;
+    currentQType  = question.type || 'pilihan_ganda';
+    matchState    = { selectedLeft: null, matched: {} };
+
+    document.getElementById('q-current').textContent     = currentQuestion + 1;
+    document.getElementById('q-total').textContent       = total;
+    document.getElementById('question-text').textContent = question.text;
+    document.getElementById('q-bar').style.width = ((currentQuestion + 1) / total * 100) + '%';
+
+    renderQuestionMedia(question);
+    renderOptions(question);
+
+    if (!IS_HOST) {
+      document.getElementById('student-score-bar').style.display = 'flex';
+      document.getElementById('live-score').textContent = fmtNumber(myScore);
+    }
+    document.getElementById('answer-progress').style.display = IS_HOST ? 'block' : 'none';
+    if (IS_HOST) {
+      document.getElementById('answered-count').textContent = '0';
+      document.getElementById('total-count').textContent    = '?';
+      document.getElementById('host-action-bar').style.display = 'none';
+    }
+    startTimer(question.timeLimit);
+  }
+
+  function renderQuestionMedia(question) {
+    const wrapper = document.getElementById('options-container');
+    // Insert media above options using a shared media node
+    let mediaEl = document.getElementById('q-media-node');
+    if (!mediaEl) {
+      mediaEl = document.createElement('div');
+      mediaEl.id = 'q-media-node';
+      mediaEl.className = 'q-media';
+      wrapper.parentNode.insertBefore(mediaEl, wrapper);
+    }
+    mediaEl.innerHTML = '';
+    if (question.imageUrl) {
+      mediaEl.innerHTML = `<img src="${escHtml(question.imageUrl)}" alt="">`;
+    } else if (question.videoUrl) {
+      // Embed YouTube
+      const ytId = extractYouTubeId(question.videoUrl);
+      if (ytId) {
+        mediaEl.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}?autoplay=0" allowfullscreen></iframe>`;
+      }
+    }
+  }
+
+  function extractYouTubeId(url) {
+    const m = url.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{11})/);
+    return m ? m[1] : null;
+  }
+
+  function renderOptions(question) {
+    const container = document.getElementById('options-container');
+    const type = question.type || 'pilihan_ganda';
+
+    if (type === 'benar_salah') {
+      container.innerHTML = `<div class="tf-grid">
+        <button class="tf-option true-opt" data-idx="0" ${IS_HOST?'disabled':''}>○ BENAR</button>
+        <button class="tf-option false-opt" data-idx="1" ${IS_HOST?'disabled':''}>× SALAH</button>
+      </div>`;
+      if (!IS_HOST) {
+        container.querySelectorAll('.tf-option').forEach(btn => {
+          btn.addEventListener('click', () => {
+            if (hasAnswered) return;
+            submitAnswer(parseInt(btn.dataset.idx));
+            container.querySelectorAll('.tf-option').forEach(b => { b.disabled = true; });
+            btn.classList.add('selected');
+          });
+        });
+      }
+    } else if (type === 'pilihan_kartu') {
+      container.innerHTML = `<div class="card-grid">
+        ${question.options.map((opt, i) => `
+          <button class="card-option" data-idx="${i}" ${IS_HOST?'disabled':''}
+            style="background:${CARD_BG[i%4]};color:white;">
+            ${opt.imageUrl ? `<img src="${escHtml(opt.imageUrl)}" alt="">` : ''}
+            <span>${escHtml(opt.text||OPTION_LETTERS[i])}</span>
+          </button>`).join('')}
+      </div>`;
+      if (!IS_HOST) {
+        container.querySelectorAll('.card-option').forEach(btn => {
+          btn.addEventListener('click', () => {
+            if (hasAnswered) return;
+            submitAnswer(parseInt(btn.dataset.idx));
+            container.querySelectorAll('.card-option').forEach(b => { b.disabled = true; });
+            btn.classList.add('selected');
+          });
+        });
+      }
+    } else if (type === 'pilihan_gambar') {
+      container.innerHTML = `<div class="card-grid">
+        ${question.options.map((opt, i) => `
+          <button class="card-option" data-idx="${i}" ${IS_HOST?'disabled':''}
+            style="background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.25);">
+            ${opt.imageUrl ? `<img src="${escHtml(opt.imageUrl)}" alt="" style="max-height:90px;object-fit:contain;">` : `<span style="font-size:2rem;">画</span>`}
+            ${opt.text ? `<span style="font-size:0.82rem;color:rgba(255,255,255,0.85);">${escHtml(opt.text)}</span>` : ''}
+          </button>`).join('')}
+      </div>`;
+      if (!IS_HOST) {
+        container.querySelectorAll('.card-option').forEach(btn => {
+          btn.addEventListener('click', () => {
+            if (hasAnswered) return;
+            submitAnswer(parseInt(btn.dataset.idx));
+            container.querySelectorAll('.card-option').forEach(b => { b.disabled = true; });
+            btn.classList.add('selected');
+          });
+        });
+      }
+    } else if (type === 'cocokkan') {
+      const lefts  = question.matchPairs.map(p => p.left);
+      // Shuffle rights for display
+      const rights = [...question.matchPairs.map(p => p.left)]; // we don't have right-side values; they'll be revealed on timeUp
+      // We show left items and a "submit" button; the user drags/taps to match
+      // Simplified: show left items as clickable, right slots as inputs
+      container.innerHTML = `<div style="width:100%;">
+        <div class="match-layout">
+          <div class="match-col">
+            <div class="match-col-label">SOAL</div>
+            ${lefts.map((l,i) => `
+              <div class="match-chip" data-left="${escHtml(l)}" id="mleft-${i}" onclick="matchSelectLeft(this,'${escHtml(l)}')">
+                ${escHtml(l)}
+              </div>`).join('')}
+          </div>
+          <div class="match-col">
+            <div class="match-col-label">JAWABAN (ketik)</div>
+            ${lefts.map((l,i) => `
+              <input class="form-input" id="mright-${i}" placeholder="Jawaban untuk: ${escHtml(l)}"
+                style="background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.2);color:white;" ${IS_HOST?'disabled':''}>
+            `).join('')}
+          </div>
+        </div>
+        ${!IS_HOST ? `<button class="btn btn-primary match-submit-btn btn-full" id="match-submit-btn" onclick="submitMatchAnswers()">送 Kirim Jawaban</button>` : ''}
+      </div>`;
+    } else {
+      // pilihan_ganda (default)
+      container.innerHTML = `<div class="option-grid">
+        ${question.options.map((opt, i) => `
+          <button class="option-btn" data-idx="${i}" ${IS_HOST?'disabled':''}>
+            <span class="option-letter">${OPTION_LETTERS[i]}</span>
+            <span>${escHtml(opt.text||'')}</span>
+          </button>`).join('')}
+      </div>`;
+      if (!IS_HOST) {
+        container.querySelectorAll('.option-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            if (hasAnswered) return;
+            submitAnswer(parseInt(btn.dataset.idx));
+            container.querySelectorAll('.option-btn').forEach(b => { b.disabled = true; });
+            btn.classList.add('selected');
+          });
+        });
+      }
+    }
+  }
+
+  function submitAnswer(idx) {
+    hasAnswered = true;
+    socket.emit('submitAnswer', { code: CODE, optionIndex: idx });
+  }
+
+  function submitMatchAnswers() {
+    if (hasAnswered) return;
+    const lefts = document.querySelectorAll('[id^="mleft-"]');
+    const matchAnswers = Array.from(lefts).map((el, i) => ({
+      left:  el.dataset.left,
+      right: document.getElementById('mright-' + i)?.value.trim() || ''
+    }));
+    hasAnswered = true;
+    document.getElementById('match-submit-btn')?.remove();
+    document.querySelectorAll('[id^="mright-"]').forEach(el => el.disabled = true);
+    socket.emit('submitAnswer', { code: CODE, matchAnswers });
+  }
+
+  function matchSelectLeft(el, val) {
+    document.querySelectorAll('.match-chip').forEach(c => c.classList.remove('selected-left'));
+    el.classList.add('selected-left');
+    matchState.selectedLeft = val;
+  }
+
+  function showHostAction() {
+    clearTimer();
+    document.getElementById('host-action-bar').style.display = 'block';
+  }
+
+  // ── Timer ───────────────────────────────────────────────────────
+  function startTimer(seconds) {
+    clearTimer();
+    timerSeconds = seconds;
+    updateTimerUI();
+    timerInterval = setInterval(() => {
+      timerSeconds--;
+      updateTimerUI();
+      if (timerSeconds <= 0) { clearTimer(); if (IS_HOST) showHostAction(); }
+    }, 1000);
+  }
+  function updateTimerUI() {
+    const el   = document.getElementById('timer-num');
+    const ring = document.getElementById('timer-ring');
+    el.textContent = Math.max(0, timerSeconds);
+    ring.classList.toggle('warning',  timerSeconds <= 10 && timerSeconds > 5);
+    ring.classList.toggle('critical', timerSeconds <= 5);
+  }
+  function clearTimer() { clearInterval(timerInterval); timerInterval = null; }
+
+  // ── Host Buttons ────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('next-q-btn')?.addEventListener('click', () => socket.emit('nextQuestion', { code: CODE }));
+    document.getElementById('end-quiz-btn')?.addEventListener('click', () => {
+      if (confirm('Yakin ingin mengakhiri kuis sekarang?')) socket.emit('endQuiz', { code: CODE });
+    });
+    document.getElementById('next-q-btn-2')?.addEventListener('click', () => {
+      showScreen('question');
+      socket.emit('nextQuestion', { code: CODE });
+    });
+    document.getElementById('end-btn-2')?.addEventListener('click', () => {
+      if (confirm('Yakin ingin mengakhiri kuis?')) socket.emit('endQuiz', { code: CODE });
+    });
+  });
+
+  // ── Streak Toast ─────────────────────────────────────────────────
+  function showStreakToast(streak, bonus) {
+    const el = document.getElementById('streak-toast');
+    el.textContent = `連 ${streak}× STREAK! +${fmtNumber(bonus)} 点 ボーナス`;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 2500);
+  }
+
+  // ── Reveal ──────────────────────────────────────────────────────
+  function revealAnswers(correctIndex, correctPairs, leaderboard) {
+    const type = currentQType;
+
+    if (type === 'pilihan_ganda' || type === 'pilihan_kartu' || type === 'pilihan_gambar') {
+      const btns = document.querySelectorAll('.option-btn, .card-option');
+      btns.forEach((btn, i) => {
+        btn.disabled = true;
+        if (i === correctIndex) btn.classList.add('correct');
+        else if (btn.classList.contains('selected')) btn.classList.add('incorrect');
+      });
+    } else if (type === 'benar_salah') {
+      document.querySelectorAll('.tf-option').forEach((btn, i) => {
+        btn.disabled = true;
+        if (i === correctIndex) btn.classList.add('correct');
+        else if (btn.classList.contains('selected')) btn.classList.add('incorrect');
+      });
+    } else if (type === 'cocokkan') {
+      // Show correct pairs
+      const lefts = document.querySelectorAll('[id^="mleft-"]');
+      lefts.forEach((el, i) => {
+        const pair = correctPairs[i];
+        if (pair) {
+          const input = document.getElementById('mright-' + i);
+          if (input) {
+            input.value = pair.right;
+            input.style.background = '#27AE80';
+          }
+        }
+      });
+    }
+
+    setTimeout(() => {
+      showScreen('reveal');
+      renderRevealScreen(correctIndex, leaderboard);
+    }, IS_HOST ? 500 : 1500);
+  }
+
+  function renderRevealScreen(correctIndex, leaderboard) {
+    const banner = document.getElementById('result-banner');
+    const kanji  = document.getElementById('result-kanji');
+    const text   = document.getElementById('result-text');
+    const pts    = document.getElementById('result-pts');
+    const total  = document.getElementById('result-total');
+
+    if (IS_HOST) {
+      banner.className = 'result-banner host-view';
+      kanji.textContent = '析';
+      text.textContent  = 'Hasil Pertanyaan';
+      pts.textContent   = '';
+      total.textContent = '';
+      document.getElementById('next-btn-row').style.display = 'block';
+    } else {
+      const correct   = window._lastAnswerCorrect;
+      const earnedPts = window._lastAnswerPoints || 0;
+      if (correct === true) {
+        banner.className  = 'result-banner correct';
+        kanji.textContent = '正';
+        text.textContent  = 'Jawaban Benar!';
+        pts.textContent   = '+' + fmtNumber(earnedPts) + ' 点';
+      } else if (correct === false) {
+        banner.className  = 'result-banner incorrect';
+        kanji.textContent = '誤';
+        text.textContent  = 'Jawaban Salah';
+        pts.textContent   = '+0 点';
+      } else {
+        banner.className  = 'result-banner';
+        kanji.textContent = '時';
+        text.textContent  = 'Waktu Habis — Tidak Menjawab';
+        pts.textContent   = '+0 点';
+      }
+      total.textContent = '点 Total: ' + fmtNumber(myScore);
+      document.getElementById('next-btn-row').style.display = 'none';
+    }
+    renderLeaderboard(leaderboard, 'reveal-leaderboard');
+  }
+
+  // ── Leaderboard ─────────────────────────────────────────────────
+  function renderLeaderboard(list, containerId) {
+    const el = document.getElementById(containerId);
+    if (!list.length) {
+      el.innerHTML = '<p style="color:rgba(255,255,255,0.35);font-size:0.85rem;text-align:center;">Belum ada poin</p>';
+      return;
+    }
+    el.innerHTML = list.map((p, i) => {
+      const colors = ['var(--honey)','rgba(255,255,255,0.6)','rgba(255,150,100,0.8)'];
+      const symbols = ['勝','次','三'];
+      return `<div class="leaderboard-item" style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.12);">
+        <span class="leaderboard-rank" style="color:${colors[i]||'rgba(255,255,255,0.3)'};">${symbols[i]||i+1}</span>
+        <span class="leaderboard-name" style="color:white;">${escHtml(p.name)}</span>
+        <span class="leaderboard-score" style="color:var(--honey);">${fmtNumber(p.score)}</span>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Final Screen ────────────────────────────────────────────────
+  function showFinalScreen(leaderboard) {
+    bgmAudio.pause();
+    bgmPanel.classList.add('hidden');
+    showScreen('final');
+    renderLeaderboard(leaderboard, 'final-leaderboard');
+  }
+
+  // ── Comments ────────────────────────────────────────────────────
+  async function loadComments() {
+    if (!currentQuizId) return;
+    const section = document.getElementById('comments-section');
+    section.style.display = 'block';
+
+    try {
+      const comments = await fetch('/api/comments/' + currentQuizId).then(r => r.json());
+      renderCommentsDark(comments);
+    } catch { /* silently skip */ }
+
+    const user = Auth.getUser();
+    if (user) {
+      document.getElementById('comment-form-row').style.display = 'flex';
+      document.getElementById('comment-login-msg').style.display = 'none';
+    } else {
+      document.getElementById('comment-form-row').style.display = 'none';
+      document.getElementById('comment-login-msg').style.display = 'block';
+    }
+  }
+
+  function renderCommentsDark(comments) {
+    const el = document.getElementById('comments-list-dark');
+    if (!comments.length) {
+      el.innerHTML = `<div style="text-align:center;padding:1rem;color:rgba(255,255,255,0.3);font-family:var(--font-display);font-size:0.8rem;">Belum ada komentar. Jadilah yang pertama!</div>`;
+      return;
+    }
+    const user = Auth.getUser();
+    el.innerHTML = comments.map(c => `
+      <div class="comment-item-dark">
+        <div style="font-family:var(--font-display);font-size:1.1rem;color:var(--honey);flex-shrink:0;">${escHtml((c.userAvatar||c.userName?.charAt(0)||'?'))}</div>
+        <div class="comment-body">
+          <div>
+            <span class="comment-name">${escHtml(c.userName)}</span>
+            <span class="comment-time">${timeAgo(c.createdAt)}</span>
+            ${user && (user.id === c.user || user.role === 'admin') ?
+              `<button class="comment-delete" onclick="deleteCommentDark('${c._id}')">削</button>` : ''}
+          </div>
+          <div class="comment-text">${escHtml(c.text)}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  async function deleteCommentDark(id) {
+    if (!confirm('Hapus komentar ini?')) return;
+    try {
+      await api.delete('/comments/' + id);
+      const comments = await fetch('/api/comments/' + currentQuizId).then(r => r.json());
+      renderCommentsDark(comments);
+    } catch (err) { Toast.error(err.message); }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('comment-submit-btn')?.addEventListener('click', async () => {
+      const input = document.getElementById('comment-input');
+      const text  = input.value.trim();
+      if (!text) { Toast.warning('Komentar tidak boleh kosong'); return; }
+      try {
+        await api.post('/comments/' + currentQuizId, { text });
+        input.value = '';
+        const comments = await fetch('/api/comments/' + currentQuizId).then(r => r.json());
+        renderCommentsDark(comments);
+      } catch (err) { Toast.error(err.message); }
+    });
+    document.getElementById('comment-input')?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('comment-submit-btn').click();
+    });
+  });
+
+  // ── Utility ────────────────────────────────────────────────────
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+</body>
+</html>

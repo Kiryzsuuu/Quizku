@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daftar — Kaji.in</title>
+  <link rel="stylesheet" href="/css/shared.css">
+  <style>
+    body { background: linear-gradient(135deg,#FFF0F8 0%,#EDE9FD 50%,#E0F4FD 100%); min-height:100vh; display:flex; flex-direction:column; }
+    .auth-wrap { flex:1; display:flex; align-items:center; justify-content:center; padding:2rem 1.5rem; }
+    .auth-card { background:white; border:var(--border); border-radius:var(--radius); box-shadow:var(--shadow-lg); width:100%; max-width:440px; overflow:hidden; }
+    .auth-banner { background:linear-gradient(135deg,var(--sky),var(--mint),var(--honey)); padding:1.75rem 2rem; text-align:center; }
+    .auth-banner-logo { font-family:var(--font-display); font-size:2rem; color:white; }
+    .auth-banner-sub  { font-family:var(--font-comic); font-size:0.95rem; color:rgba(255,255,255,0.85); margin-top:0.2rem; }
+    .auth-banner-kanji { font-family:var(--font-display); font-size:4rem; color:rgba(255,255,255,0.15); line-height:1; margin-top:0.4rem; }
+    .auth-body { padding:2rem; }
+    .auth-title { font-family:var(--font-display); font-size:1.3rem; margin-bottom:0.3rem; }
+    .auth-sub { font-size:0.85rem; color:var(--text-soft); margin-bottom:1.75rem; }
+    .auth-error { background:var(--coral-light); border:1.5px solid var(--coral); color:var(--coral); border-radius:var(--radius-md); padding:0.65rem 0.875rem; font-size:0.85rem; font-family:var(--font-display); margin-bottom:1.25rem; display:none; }
+    .auth-footer { padding:1rem 2rem; border-top:var(--border); text-align:center; font-size:0.85rem; background:var(--bg); }
+    .auth-footer a { color:var(--sakura); font-weight:700; }
+
+    .role-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:1.2rem; }
+    .role-radio { display:none; }
+    .role-label {
+      display:flex; flex-direction:column; align-items:center; gap:0.4rem;
+      padding:1rem 0.75rem; border:1.5px solid var(--border-color);
+      border-radius:var(--radius); background:var(--bg); cursor:pointer; text-align:center;
+      transition:all var(--transition);
+    }
+    .role-label:hover { border-color:var(--sakura); background:var(--sakura-pale); }
+    .role-radio:checked + .role-label {
+      border-color:var(--sakura); background:var(--sakura-pale);
+      box-shadow:0 0 0 3px rgba(255,138,174,0.15);
+    }
+    .role-icon { font-family:var(--font-display); font-size:2.2rem; line-height:1; }
+    .role-name { font-family:var(--font-display); font-size:0.85rem; color:var(--text); }
+    .role-desc { font-size:0.72rem; color:var(--text-soft); }
+  </style>
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-banner">
+      <div class="auth-banner-logo" data-site-name>Kaji.in</div>
+      <div class="auth-banner-sub">Mulai Petualangan Belajarmu!</div>
+      <div class="auth-banner-kanji">始</div>
+    </div>
+    <div class="auth-body">
+      <h1 class="auth-title">Buat Akun Baru</h1>
+      <p class="auth-sub">Bergabunglah dan jadilah bagian dari Kaji.in!</p>
+      <div class="auth-error" id="error-msg"></div>
+      <form id="register-form">
+        <div class="form-group">
+          <label class="form-label">Aku adalah...</label>
+          <div class="role-grid">
+            <div>
+              <input type="radio" name="role" id="role-student" value="student" class="role-radio" checked>
+              <label for="role-student" class="role-label">
+                <span class="role-icon">生</span>
+                <span class="role-name">Siswa</span>
+                <span class="role-desc">Ikuti kuis seru</span>
+              </label>
+            </div>
+            <div>
+              <input type="radio" name="role" id="role-teacher" value="teacher" class="role-radio">
+              <label for="role-teacher" class="role-label">
+                <span class="role-icon">師</span>
+                <span class="role-name">Guru</span>
+                <span class="role-desc">Buat & kelola kuis</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="name">Nama Lengkap</label>
+          <input class="form-input" type="text" id="name" placeholder="Nama panggilan atau lengkap" required autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="email">Email</label>
+          <input class="form-input" type="email" id="email" placeholder="nama@email.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <input class="form-input" type="password" id="password" placeholder="Minimal 6 karakter" required minlength="6" autocomplete="new-password">
+        </div>
+        <button type="submit" class="btn btn-sky btn-full btn-lg" id="submit-btn">始 Buat Akun Gratis</button>
+      </form>
+    </div>
+    <div class="auth-footer">Sudah punya akun? <a href="/login.html">Masuk di sini</a></div>
+  </div>
+</div>
+<script src="/js/app.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => { if (Auth.isLoggedIn()) window.location.href = '/dashboard.html'; });
+  document.getElementById('register-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    const err = document.getElementById('error-msg');
+    err.style.display = 'none';
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const role = document.querySelector('input[name="role"]:checked').value;
+    if (password.length < 6) { err.textContent = 'Password minimal 6 karakter'; err.style.display = 'block'; return; }
+    btn.disabled = true; btn.textContent = 'Membuat akun...';
+    try {
+      const data = await api.post('/auth/register', { name, email, password, role });
+      Auth.setSession(data.token, data.user);
+      Toast.success('Akun berhasil dibuat! Selamat datang, ' + data.user.name + '!');
+      setTimeout(() => { window.location.href = '/dashboard.html'; }, 900);
+    } catch (e2) {
+      err.textContent = e2.message; err.style.display = 'block';
+      btn.disabled = false; btn.innerHTML = '始 Buat Akun Gratis';
+    }
+  });
+</script>
+</body>
+</html>

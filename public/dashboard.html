@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Kaji.in</title>
+  <link rel="stylesheet" href="/css/shared.css">
+  <style>
+    body { background: linear-gradient(135deg, #FEF6FA 0%, #F0F4FF 50%, #F0FEF9 100%); }
+
+    .dash-stats {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; margin-bottom: 2.5rem;
+    }
+    .stat-card {
+      background: white; border: var(--border); border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 1.25rem 1.5rem;
+      display: flex; align-items: center; gap: 1rem;
+    }
+    .stat-card-icon {
+      font-family: var(--font-display); font-size: 1.8rem; line-height: 1;
+      width: 52px; height: 52px; display: flex; align-items: center; justify-content: center;
+      border-radius: var(--radius-md);
+    }
+    .stat-card:nth-child(1) .stat-card-icon { background: var(--sakura-light); color: var(--sakura-dark); }
+    .stat-card:nth-child(2) .stat-card-icon { background: #E0F4FD; color: #2B8ECC; }
+    .stat-card:nth-child(3) .stat-card-icon { background: #E6FAF3; color: #27AE80; }
+
+    .quiz-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem;
+    }
+    .quiz-create-card {
+      background: var(--sakura-pale); border: 2px dashed var(--sakura);
+      border-radius: var(--radius); display: flex; flex-direction: column;
+      align-items: center; justify-content: center; padding: 2.5rem 1rem;
+      text-align: center; cursor: pointer; min-height: 180px;
+      transition: all var(--transition); color: var(--sakura); text-decoration: none;
+    }
+    .quiz-create-card:hover { background: var(--sakura-light); border-style: solid; transform: translateY(-2px); }
+    .quiz-create-icon  { font-family: var(--font-display); font-size: 2.5rem; margin-bottom: 0.5rem; display: block; }
+    .quiz-create-label { font-family: var(--font-display); font-size: 0.9rem; }
+
+    .session-row {
+      display: flex; align-items: center; gap: 1rem; padding: 0.875rem 1rem;
+      background: white; border: var(--border); border-radius: var(--radius-md); margin-bottom: 0.5rem;
+      transition: box-shadow var(--transition);
+    }
+    .session-row:hover { box-shadow: var(--shadow); }
+    .session-row-code { font-family: var(--font-display); font-size: 1rem; color: var(--sky); min-width: 70px; }
+    .session-row-title { flex: 1; font-weight: 700; font-size: 0.9rem; color: var(--text); }
+    .session-row-meta  { font-size: 0.78rem; color: var(--text-mid); }
+
+    .join-banner {
+      background: linear-gradient(135deg, var(--sky), var(--mint));
+      border-radius: var(--radius); box-shadow: var(--shadow-lg);
+      padding: 1.5rem; display: flex; align-items: center;
+      justify-content: space-between; gap: 1rem; margin-bottom: 2.5rem; flex-wrap: wrap;
+    }
+    .join-banner h3 { font-family: var(--font-display); font-size: 1.1rem; color: white; margin-bottom: 0.25rem; }
+    .join-banner p  { font-size: 0.85rem; color: rgba(255,255,255,0.8); }
+
+    .section-heading {
+      font-family: var(--font-display); font-size: 1.1rem; color: var(--text);
+      margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+    }
+    .section-heading::after {
+      content: ''; flex: 1; height: 2px;
+      background: linear-gradient(90deg, var(--sakura-light), transparent);
+    }
+
+    .greeting-chip {
+      display: inline-block; background: var(--sakura-pale); color: var(--sakura-dark);
+      border-radius: var(--radius-full); padding: 0.25rem 0.75rem;
+      font-family: var(--font-display); font-size: 0.75rem; margin-bottom: 0.4rem;
+    }
+
+    @media (max-width: 640px) { .dash-stats { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="/" class="navbar-logo" data-site-name>Kaji.in</a>
+    <div class="navbar-links" id="navbar-links">
+      <a href="/dashboard.html" aria-current="page">控 Dashboard</a>
+      <a href="/join.html">参 Gabung</a>
+      <div id="nav-user-slot" class="navbar-user"></div>
+    </div>
+    <button class="navbar-toggle">目</button>
+  </div>
+</nav>
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+  <div class="container">
+    <div class="flex items-center justify-between gap-2" style="flex-wrap:wrap;">
+      <div>
+        <div class="greeting-chip" id="greeting-chip">控 Dashboard</div>
+        <h1 id="greeting" style="font-size:1.6rem;margin-bottom:0.25rem;">Selamat Datang!</h1>
+        <p id="greeting-sub" style="color:rgba(255,255,255,0.8);font-size:0.9rem;">Selamat datang kembali</p>
+      </div>
+      <div id="header-action"></div>
+    </div>
+  </div>
+</div>
+
+<main class="container" style="padding-bottom:3rem;">
+
+  <!-- TEACHER VIEW -->
+  <div id="teacher-view" style="display:none;">
+    <div class="dash-stats">
+      <div class="stat-card">
+        <div class="stat-card-icon">作</div>
+        <div>
+          <div class="stat-number" id="stat-quizzes">0</div>
+          <div class="stat-label">Kuis Dibuat</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-icon">戦</div>
+        <div>
+          <div class="stat-number" id="stat-sessions">0</div>
+          <div class="stat-label">Sesi Dijalankan</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-icon">人</div>
+        <div>
+          <div class="stat-number" id="stat-participants">—</div>
+          <div class="stat-label">Total Peserta</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-heading">作 Kuis Saya</div>
+    <div class="quiz-grid" id="quiz-grid">
+      <div class="loading-screen" style="min-height:200px;"><div class="spinner spinner-lg"></div></div>
+    </div>
+
+    <div class="section-heading" style="margin-top:2.5rem;">戦 Sesi Terakhir</div>
+    <div id="sessions-list">
+      <div class="loading-screen" style="min-height:100px;"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- STUDENT VIEW -->
+  <div id="student-view" style="display:none;">
+    <div class="join-banner">
+      <div>
+        <h3>参 Gabung Kuis</h3>
+        <p>Masukkan kode 6 karakter dari gurumu untuk mulai bermain</p>
+      </div>
+      <a href="/join.html" class="btn btn-sky btn-lg" style="background:white;color:var(--sky);border:none;">Gabung Sekarang</a>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span>析 Riwayat Kuis</span>
+      </div>
+      <div class="card-body">
+        <div class="empty-state" style="padding:2rem;">
+          <div class="empty-icon">問</div>
+          <h3>Belum Ada Riwayat</h3>
+          <p>Ikuti kuis dan riwayatmu akan muncul di sini</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- DELETE MODAL -->
+<div class="modal-overlay" id="delete-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">削 Hapus Kuis</span>
+      <button class="modal-close" onclick="closeModal('delete-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <p>Yakin ingin menghapus kuis <strong id="delete-quiz-name"></strong>?<br>
+      Tindakan ini tidak bisa dibatalkan.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('delete-modal')">Batal</button>
+      <button class="btn btn-primary" id="confirm-delete-btn">削 Hapus</button>
+    </div>
+  </div>
+</div>
+
+<!-- START SESSION MODAL -->
+<div class="modal-overlay" id="start-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">始 Mulai Sesi Langsung</span>
+      <button class="modal-close" onclick="closeModal('start-modal')">×</button>
+    </div>
+    <div class="modal-body" id="start-modal-body">
+      <div class="loading-screen" style="min-height:120px;"><div class="spinner spinner-lg"></div></div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  let quizzes = [];
+  let deleteTargetId = null;
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    if (!Auth.requireAuth()) return;
+    const user = Auth.getUser();
+
+    const hour = new Date().getHours();
+    const greet = hour < 12 ? '朝 Selamat Pagi' : hour < 17 ? '昼 Selamat Siang' : '夜 Selamat Malam';
+    document.getElementById('greeting').textContent = greet + ', ' + user.name + '!';
+    document.getElementById('greeting-sub').textContent =
+      user.role === 'teacher' ? 'Panel Guru — Kelola kuis dan sesimu'
+      : user.role === 'admin'  ? 'Panel Admin — Selamat datang, admin!'
+      : 'Panel Siswa — Ikuti kuis dan lihat progresmu';
+
+    const chip = document.getElementById('greeting-chip');
+    chip.textContent = user.role === 'teacher' ? '師 Guru' : user.role === 'admin' ? '管 Admin' : '生 Siswa';
+
+    if (user.role === 'teacher' || user.role === 'admin') {
+      document.getElementById('teacher-view').style.display = 'block';
+      document.getElementById('header-action').innerHTML =
+        `<div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+          <a href="/create.html" class="btn btn-primary btn-lg">作 Buat Kuis Baru</a>
+          ${user.role === 'admin' ? '<a href="/admin.html" class="btn btn-outline btn-lg">管 Admin Panel</a>' : ''}
+        </div>`;
+      loadTeacherData();
+    } else {
+      document.getElementById('student-view').style.display = 'block';
+    }
+  });
+
+  async function loadTeacherData() {
+    try {
+      const [quizData, sessData] = await Promise.all([
+        api.get('/quiz'),
+        api.get('/session/history').catch(() => [])
+      ]);
+      quizzes = quizData;
+      renderQuizzes(quizzes);
+      renderSessions(sessData);
+      document.getElementById('stat-quizzes').textContent = quizzes.length;
+      document.getElementById('stat-sessions').textContent = sessData.length;
+    } catch (err) {
+      showErrorIn(document.getElementById('quiz-grid'), 'Gagal memuat kuis');
+    }
+  }
+
+  function renderQuizzes(list) {
+    const grid = document.getElementById('quiz-grid');
+    const COVER_COLORS = ['#FF8AAE','#59BFEB','#FFD566','#4EDBA8','#9B8AF5','#FF8066'];
+    let html = `<a href="/create.html" class="quiz-create-card">
+      <span class="quiz-create-icon">作</span>
+      <span class="quiz-create-label">Buat Kuis Baru</span>
+    </a>`;
+    if (!list.length) {
+      grid.innerHTML = html + `<div style="grid-column:1/-1;padding:1.5rem 0;color:var(--text-soft);font-size:0.9rem;font-family:var(--font-display);">
+        Belum ada kuis. Mulai dengan membuat kuis pertama!</div>`;
+      return;
+    }
+    list.forEach((q, idx) => {
+      const color = q.coverColor || COVER_COLORS[idx % COVER_COLORS.length];
+      html += `<div class="quiz-card">
+        <div class="quiz-card-banner" style="background:${escHtml(color)}"></div>
+        <div class="quiz-card-body">
+          <div class="quiz-card-title">${escHtml(q.title)}</div>
+          <div class="quiz-card-meta">問 ${q.questions?.length || 0} soal &nbsp;·&nbsp; ${fmtDate(q.createdAt)}</div>
+          ${q.bgmUrl ? '<span class="badge badge-lavender" style="margin-top:0.3rem;">音 BGM</span>' : ''}
+          ${q.isPublic ? ' <span class="badge badge-sky" style="margin-top:0.3rem;">公 Publik</span>' : ''}
+        </div>
+        <div class="quiz-card-footer" style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+          <button class="btn btn-primary btn-sm" onclick="startSession('${q._id}','${escHtml(q.title).replace(/'/g,"\\'")}')">始 Mulai</button>
+          <a href="/create.html?id=${q._id}" class="btn btn-outline btn-sm">編 Edit</a>
+          <button class="btn btn-ghost btn-sm" onclick="openDeleteModal('${q._id}','${escHtml(q.title).replace(/'/g,"\\'")}')">削</button>
+        </div>
+      </div>`;
+    });
+    grid.innerHTML = html;
+  }
+
+  function renderSessions(list) {
+    const el = document.getElementById('sessions-list');
+    if (!list.length) {
+      el.innerHTML = `<div class="empty-state" style="padding:2rem;">
+        <div class="empty-icon" style="font-size:2.5rem;">戦</div>
+        <p>Belum ada sesi yang dijalankan</p></div>`;
+      return;
+    }
+    el.innerHTML = list.map(s => `
+      <div class="session-row">
+        <span class="session-row-code">${s.code}</span>
+        <span class="session-row-title">${escHtml(s.quiz?.title || '—')}</span>
+        <span class="session-row-meta">${s.participants?.length || 0} peserta &nbsp;·&nbsp; ${fmtDate(s.createdAt)}</span>
+        <span class="badge ${s.status === 'ended' ? 'badge-default' : s.status === 'active' ? 'badge-sky' : 'badge-honey'}">
+          ${s.status === 'ended' ? '終' : s.status === 'active' ? '中' : '待'} ${s.status}
+        </span>
+      </div>`).join('');
+  }
+
+  async function startSession(quizId, quizTitle) {
+    const modal = document.getElementById('start-modal');
+    const body  = document.getElementById('start-modal-body');
+    modal.classList.add('active');
+    body.innerHTML = `<div class="loading-screen" style="min-height:120px;"><div class="spinner spinner-lg"></div><p style="font-family:var(--font-display);font-size:0.82rem;color:var(--text-soft);">Membuat sesi...</p></div>`;
+    try {
+      const data = await api.post('/session', { quizId });
+      body.innerHTML = `
+        <div style="text-align:center;">
+          <p style="font-family:var(--font-display);font-size:0.75rem;letter-spacing:0.15em;color:var(--text-soft);margin-bottom:0.5rem;">KODE SESI</p>
+          <div class="room-code mb-3">${data.code}</div>
+          <p style="margin-bottom:1.25rem;font-size:0.9rem;color:var(--text-mid);">Bagikan kode ini kepada peserta.</p>
+          <a href="/quiz.html?code=${data.code}&host=1" class="btn btn-primary btn-full btn-lg">始 Buka Sesi</a>
+        </div>`;
+    } catch (err) {
+      body.innerHTML = `<div class="empty-state" style="padding:1.5rem;">
+        <div class="empty-icon" style="font-size:2rem;">誤</div>
+        <h3>${err.message}</h3>
+        <button class="btn btn-ghost btn-sm mt-2" onclick="closeModal('start-modal')">Tutup</button>
+      </div>`;
+    }
+  }
+
+  function openDeleteModal(id, title) {
+    deleteTargetId = id;
+    document.getElementById('delete-quiz-name').textContent = title;
+    document.getElementById('delete-modal').classList.add('active');
+  }
+
+  document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
+    if (!deleteTargetId) return;
+    const btn = document.getElementById('confirm-delete-btn');
+    btn.disabled = true; btn.textContent = 'Menghapus...';
+    try {
+      await api.delete('/quiz/' + deleteTargetId);
+      closeModal('delete-modal');
+      Toast.success('Kuis berhasil dihapus');
+      quizzes = quizzes.filter(q => q._id !== deleteTargetId);
+      renderQuizzes(quizzes);
+    } catch (err) {
+      Toast.error(err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = '削 Hapus';
+      deleteTargetId = null;
+    }
+  });
+
+  function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+  document.querySelectorAll('.modal-overlay').forEach(el => {
+    el.addEventListener('click', e => { if (e.target === el) el.classList.remove('active'); });
+  });
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+</script>
+</body>
+</html>

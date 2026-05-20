@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Masuk — Kaji.in</title>
+  <link rel="stylesheet" href="/css/shared.css">
+  <style>
+    body {
+      background: linear-gradient(135deg, #FFF0F8 0%, #EDE9FD 50%, #E0F4FD 100%);
+      min-height: 100vh; display: flex; flex-direction: column;
+    }
+    .auth-wrap { flex:1; display:flex; align-items:center; justify-content:center; padding:2rem 1.5rem; }
+    .auth-card {
+      background: white; border: var(--border); border-radius: var(--radius);
+      box-shadow: var(--shadow-lg); width: 100%; max-width: 420px; overflow: hidden;
+    }
+    .auth-banner {
+      background: linear-gradient(135deg, var(--sakura), var(--lavender), var(--sky));
+      padding: 2rem; text-align: center;
+    }
+    .auth-banner-logo { font-family: var(--font-display); font-size: 2.2rem; color: white; letter-spacing:-0.02em; }
+    .auth-banner-sub  { font-family: var(--font-comic); font-size: 1rem; color: rgba(255,255,255,0.85); letter-spacing:0.08em; margin-top:0.25rem; }
+    .auth-banner-kanji { font-family: var(--font-display); font-size: 5rem; color: rgba(255,255,255,0.15); line-height:1; margin-top:0.5rem; }
+    .auth-body { padding: 2rem; }
+    .auth-title { font-family:var(--font-display); font-size:1.3rem; margin-bottom:0.3rem; color:var(--text); }
+    .auth-sub   { font-size:0.85rem; color:var(--text-soft); margin-bottom:1.75rem; }
+    .auth-error {
+      background: var(--coral-light); border: 1.5px solid var(--coral); color: var(--coral);
+      border-radius: var(--radius-md); padding: 0.65rem 0.875rem;
+      font-size: 0.85rem; font-family: var(--font-display); margin-bottom: 1.25rem; display: none;
+    }
+    .auth-footer { padding: 1rem 2rem; border-top:var(--border); text-align:center; font-size:0.85rem; background:var(--bg); }
+    .auth-footer a { color:var(--sakura); font-weight:700; }
+  </style>
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-banner">
+      <div class="auth-banner-logo" data-site-name>Kaji.in</div>
+      <div class="auth-banner-sub">Belajar Seperti Petualangan!</div>
+      <div class="auth-banner-kanji">入</div>
+    </div>
+    <div class="auth-body">
+      <h1 class="auth-title">Selamat Datang Kembali!</h1>
+      <p class="auth-sub">Masuk dan lanjutkan petualangan belajarmu</p>
+      <div class="auth-error" id="error-msg"></div>
+      <form id="login-form">
+        <div class="form-group">
+          <label class="form-label" for="email">Alamat Email</label>
+          <input class="form-input" type="email" id="email" placeholder="nama@email.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <input class="form-input" type="password" id="password" placeholder="Masukkan password" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-full btn-lg" id="submit-btn">入 Masuk Sekarang</button>
+      </form>
+      <div style="display:flex;align-items:center;gap:.75rem;margin:1.25rem 0;color:var(--text-soft);font-size:0.78rem;font-family:var(--font-display);letter-spacing:0.1em;">
+        <span style="flex:1;height:1.5px;background:var(--border-color);"></span>atau<span style="flex:1;height:1.5px;background:var(--border-color);"></span>
+      </div>
+      <a href="/join.html" class="btn btn-sky btn-full">参 Gabung Kuis dengan Kode</a>
+    </div>
+    <div class="auth-footer">Belum punya akun? <a href="/register.html">Daftar gratis</a></div>
+  </div>
+</div>
+<script src="/js/app.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    if (Auth.isLoggedIn()) window.location.href = '/dashboard.html';
+  });
+  document.getElementById('login-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    const err = document.getElementById('error-msg');
+    err.style.display = 'none';
+    btn.disabled = true; btn.textContent = '読み込み中...';
+    try {
+      const data = await api.post('/auth/login', {
+        email: document.getElementById('email').value.trim(),
+        password: document.getElementById('password').value
+      });
+      Auth.setSession(data.token, data.user);
+      const p = new URLSearchParams(window.location.search);
+      window.location.href = p.get('redirect') || '/dashboard.html';
+    } catch (e2) {
+      err.textContent = e2.message; err.style.display = 'block';
+      btn.disabled = false; btn.textContent = '入 Masuk Sekarang';
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,8 +1,41 @@
 ﻿node_modules/
+
+# dotenv (keep example in repo)
 .env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Build output
+dist/
+build/
+
+# Caches
+.cache/
+.parcel-cache/
+.eslintcache
+
+# OS / Editor
 .DS_Store
+Thumbs.db
 
-
-.env
+# Local tool settings
 .claude/settings.local.json
 

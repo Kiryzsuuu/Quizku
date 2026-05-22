@@ -65,8 +65,8 @@
 
     .question-body {
       flex: 1; display: flex; flex-direction: column; align-items: center;
-      justify-content: center; padding: 1.5rem; gap: 1.5rem;
-      max-width: 840px; margin: 0 auto; width: 100%;
+      justify-content: flex-start; padding: 2rem 1.5rem; gap: 1.5rem;
+      max-width: 960px; margin: 0 auto; width: 100%;
     }
     .question-text {
       font-family: var(--font-display); font-size: clamp(1rem,3vw,1.6rem);
@@ -77,7 +77,7 @@
       padding: 0.4rem 1.25rem; background: rgba(255,213,102,0.1);
       border: 1.5px solid rgba(255,213,102,0.3); border-radius: var(--radius-full);
     }
-    .options-wrapper { width: 100%; }
+    .options-wrapper { width: 100%; display: flex; flex-direction: column; flex: 1; }
 
     /* ── Reveal Screen ── */
     #screen-reveal { background: #1E1535; }
@@ -185,34 +185,37 @@
     .card-colors   { --c0:#E8002D; --c1:#1368CE; --c2:#D89E00; --c3:#26890C; }
 
     /* ── True/False options ── */
-    .tf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: 100%; }
-    .tf-option {
-      padding: 2rem 1rem; border: 3px solid var(--ink);
-      font-family: var(--font-comic); font-size: 1.4rem; text-align: center;
-      cursor: pointer; box-shadow: 5px 5px 0 rgba(0,0,0,0.4); border-radius: 4px;
-      transition: transform 0.1s, box-shadow 0.1s;
+    .tf-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: 100%;
+      flex: 1; min-height: 220px;
     }
-    .tf-option:hover:not(:disabled) { transform: translate(-2px,-2px); }
+    .tf-option {
+      padding: 0; min-height: 180px; border: 3px solid var(--ink);
+      font-family: var(--font-comic); font-size: 1.6rem; text-align: center;
+      cursor: pointer; box-shadow: 5px 5px 0 rgba(0,0,0,0.4); border-radius: 8px;
+      transition: transform 0.1s, box-shadow 0.1s;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem;
+    }
+    .tf-option:hover:not(:disabled) { transform: translate(-2px,-2px); box-shadow: 7px 7px 0 rgba(0,0,0,0.4); }
     .tf-option.true-opt  { background: #4EDBA8; color: var(--ink); }
     .tf-option.false-opt { background: #FF4545; color: white; }
     .tf-option.selected  { outline: 4px solid var(--honey); }
     .tf-option.correct   { outline: 4px solid white; }
     .tf-option.incorrect { opacity: 0.45; }
 
-    /* ── Match options ── */
-    .match-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; width: 100%; }
-    .match-col { display: flex; flex-direction: column; gap: 0.5rem; }
-    .match-col-label { font-family: var(--font-comic); font-size: 0.72rem; color: rgba(255,255,255,0.4); margin-bottom: 0.25rem; letter-spacing: 0.1em; text-align: center; }
+    /* ── Match options (flat grid: chip + input per baris) ── */
+    .match-flat-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem 1.5rem;
+      width: 100%; align-items: center;
+    }
+    .match-col-label { font-family: var(--font-comic); font-size: 0.72rem; color: rgba(255,255,255,0.4); letter-spacing: 0.1em; text-align: center; padding: 0.25rem 0; }
     .match-chip {
       padding: 0.65rem 1rem; border: 2.5px solid rgba(255,255,255,0.25);
       border-radius: 4px; text-align: center; font-family: var(--font-comic);
-      font-size: 0.9rem; cursor: pointer; background: rgba(255,255,255,0.08);
-      transition: all 0.15s;
+      font-size: 0.9rem; background: rgba(255,255,255,0.08);
     }
-    .match-chip:hover         { background: rgba(255,255,255,0.15); }
-    .match-chip.selected-left { background: var(--sakura); border-color: var(--sakura); color: white; }
-    .match-chip.matched       { background: #27AE80; border-color: #27AE80; cursor: default; }
-    .match-chip.wrong         { background: #E8002D; border-color: #E8002D; animation: shake 0.3s; }
+    .match-chip.matched { background: #27AE80; border-color: #27AE80; }
+    .match-chip.wrong   { background: #E8002D; border-color: #E8002D; animation: shake 0.3s; }
     @keyframes shake { 0%,100%{transform:none} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
     .match-submit-btn { margin-top: 1rem; }
 
@@ -228,10 +231,11 @@
 
     @media (max-width: 640px) {
       .question-text { font-size: 1rem; }
-      .option-grid { grid-template-columns: 1fr; }
-      .card-grid   { grid-template-columns: 1fr; }
-      .tf-grid     { grid-template-columns: 1fr; }
-      .match-layout{ grid-template-columns: 1fr; }
+      .option-grid    { grid-template-columns: 1fr; }
+      .card-grid      { grid-template-columns: 1fr; }
+      .tf-grid        { grid-template-columns: 1fr; min-height: unset; }
+      .tf-option      { min-height: 100px; }
+      .match-flat-grid{ grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -670,27 +674,16 @@
         });
       }
     } else if (type === 'cocokkan') {
-      const lefts  = question.matchPairs.map(p => p.left);
-      // Shuffle rights for display
-      const rights = [...question.matchPairs.map(p => p.left)]; // we don't have right-side values; they'll be revealed on timeUp
-      // We show left items and a "submit" button; the user drags/taps to match
-      // Simplified: show left items as clickable, right slots as inputs
+      const lefts = question.matchPairs.map(p => p.left);
       container.innerHTML = `<div style="width:100%;">
-        <div class="match-layout">
-          <div class="match-col">
-            <div class="match-col-label">SOAL</div>
-            ${lefts.map((l,i) => `
-              <div class="match-chip" data-left="${escHtml(l)}" id="mleft-${i}" onclick="matchSelectLeft(this,'${escHtml(l)}')">
-                ${escHtml(l)}
-              </div>`).join('')}
-          </div>
-          <div class="match-col">
-            <div class="match-col-label">JAWABAN (ketik)</div>
-            ${lefts.map((l,i) => `
-              <input class="form-input" id="mright-${i}" placeholder="Jawaban untuk: ${escHtml(l)}"
-                style="background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.2);color:white;" ${IS_HOST?'disabled':''}>
-            `).join('')}
-          </div>
+        <div class="match-flat-grid">
+          <div class="match-col-label">SOAL</div>
+          <div class="match-col-label">JAWABAN (ketik)</div>
+          ${lefts.map((l,i) => `
+            <div class="match-chip" id="mleft-${i}" data-left="${escHtml(l)}">${escHtml(l)}</div>
+            <input class="form-input" id="mright-${i}" placeholder="Ketik jawaban..."
+              style="background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.2);color:white;box-shadow:none;" ${IS_HOST?'disabled':''}>
+          `).join('')}
         </div>
         ${!IS_HOST ? `<button class="btn btn-primary match-submit-btn btn-full" id="match-submit-btn" onclick="submitMatchAnswers()">送 Kirim Jawaban</button>` : ''}
       </div>`;

@@ -1,7 +1,7 @@
 {
-  "name": "kajiin",
+  "name": "quizku",
   "version": "1.0.0",
-  "description": "Kaji.in — Platform Kuis Interaktif Bertemakan Jepang",
+  "description": "Quizku — Platform Kuis Interaktif Bertemakan Jepang",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

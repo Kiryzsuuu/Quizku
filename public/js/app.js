@@ -1,5 +1,5 @@
 /* ================================================================
-   KAJI.IN — SHARED UTILITIES
+   QUIZKU — SHARED UTILITIES
    ================================================================ */
 
 // ── TOAST ──────────────────────────────────────────────────────
@@ -25,20 +25,20 @@ const Toast = {
 
 // ── AUTH ────────────────────────────────────────────────────────
 const Auth = {
-  getToken: () => localStorage.getItem('kaji_token'),
+  getToken: () => localStorage.getItem('quizku_token'),
   getUser() {
-    try { const u = localStorage.getItem('kaji_user'); return u ? JSON.parse(u) : null; }
+    try { const u = localStorage.getItem('quizku_user'); return u ? JSON.parse(u) : null; }
     catch { return null; }
   },
   setSession(token, user) {
-    localStorage.setItem('kaji_token', token);
-    localStorage.setItem('kaji_user', JSON.stringify(user));
+    localStorage.setItem('quizku_token', token);
+    localStorage.setItem('quizku_user', JSON.stringify(user));
   },
   clearSession() {
-    localStorage.removeItem('kaji_token');
-    localStorage.removeItem('kaji_user');
+    localStorage.removeItem('quizku_token');
+    localStorage.removeItem('quizku_user');
   },
-  isLoggedIn: () => !!localStorage.getItem('kaji_token'),
+  isLoggedIn: () => !!localStorage.getItem('quizku_token'),
   requireAuth(redirect = '/login.html') {
     if (!this.isLoggedIn()) {
       window.location.href = redirect + '?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
@@ -92,7 +92,7 @@ async function loadSiteSettings() {
 
     // Update site name in elements
     document.querySelectorAll('[data-site-name]').forEach(el => {
-      el.textContent = s.siteName || 'Kaji.in';
+      el.textContent = s.siteName || 'Quizku';
     });
 
     // Announcement banner
@@ -107,7 +107,7 @@ async function loadSiteSettings() {
           background:var(--bg);flex-direction:column;gap:1rem;text-align:center;padding:2rem;">
           <div style="font-family:var(--font-display);font-size:5rem;color:var(--sakura);">工</div>
           <h2 style="font-family:var(--font-display);font-size:1.8rem;">Sedang dalam Perawatan</h2>
-          <p style="color:var(--text-mid);">Kaji.in sedang dalam pemeliharaan. Silakan kembali nanti.</p>
+          <p style="color:var(--text-mid);">Quizku sedang dalam pemeliharaan. Silakan kembali nanti.</p>
         </div>`;
     }
 

@@ -30,7 +30,7 @@ async function seedAdmin() {
     const existing = await User.findOne({ email: 'maskiryz23@gmail.com' });
     if (!existing) {
       await User.create({
-        name: 'Admin Kaji',
+        name: 'Admin Quizku',
         email: 'maskiryz23@gmail.com',
         password: 'opet123',
         role: 'admin',

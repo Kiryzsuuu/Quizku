@@ -4,13 +4,13 @@ const siteSettingsSchema = new mongoose.Schema({
   _key: { type: String, default: 'global', unique: true },
 
   // Branding
-  siteName:    { type: String, default: 'Kaji.in' },
+  siteName:    { type: String, default: 'Quizku' },
   tagline:     { type: String, default: 'Quiz Seru, Siapa Juara？' },
   siteIcon:    { type: String, default: '学' },
   chipText:    { type: String, default: 'Platform Kuis Bergaya Manga！' },
 
   // Hero section
-  heroTitle:       { type: String, default: 'Kaji.in' },
+  heroTitle:       { type: String, default: 'Quizku' },
   heroSubtitle:    { type: String, default: 'Quiz Seru, Siapa Juara？' },
   heroDescription: { type: String, default: 'Buat kuis pilihan ganda, tantang teman, dan nikmati sesi quiz live yang penuh semangat! Cocok untuk pelajaran apa saja.' },
   heroCTA1:        { type: String, default: '始 Mulai Gratis' },
